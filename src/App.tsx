@@ -284,12 +284,12 @@ type BlockToNote = {
 };
 
 /**Main interface for doing stuff with a note */
-class NoteApi {
+class NotesApi {
   constructor(
     private notes: Notes,
     private setNotes: React.Dispatch<React.SetStateAction<Notes>>,
     private blocks: Blocks,
-    private setBlocks: React.Dispatch<React.SetStateAction<Block>>,
+    private setBlocks: React.Dispatch<React.SetStateAction<Blocks>>,
     private blockToNote: BlockToNote,
     private setBlockToNote: React.Dispatch<React.SetStateAction<BlockToNote>>
   ) {}
@@ -309,7 +309,28 @@ class NoteApi {
     return this.getNote(this.blockToNote[id]);
   };
 
-  createNote = (title: string | null = null, lines: string[] = []) => {};
+  createNote = (title: string | null = null, lines: string[] = []) => {
+    const blocks = (lines.length > 0 ? lines : [""]).map((line) => ({
+      id: uuid(),
+      type: "text",
+      text: line,
+    }));
+    return {
+      id: uuid(),
+      title,
+      blocks,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  };
+
+  createBlock = (type: string = "text", text: string = "") => {
+    return {
+      id: uuid(),
+      type,
+      text,
+    };
+  };
 
   addNote = (partialNote: Partial<Note> & { lines: string[] }) => {
     const note = this.createNote(partialNote.title, partialNote.lines);
@@ -318,7 +339,7 @@ class NoteApi {
       [note.id]: { ...note, blocks: note.blocks.map((b) => b.id) },
     }));
     this.setBlocks((blocks) => {
-      const newBlocks = { ...blocks };
+      const newBlocks: Blocks = { ...blocks };
       note.blocks.forEach((block) => {
         newBlocks[block.id] = block;
       });
@@ -331,10 +352,65 @@ class NoteApi {
       }));
     });
   };
+
+  insertBlock = (noteId: string, block: Block, index: number) => {
+    this.setNotes((notes) => {
+      const note = notes[noteId];
+      const newBlocks = [...note.blocks];
+      newBlocks.splice(index, 0, block.id);
+      return {
+        ...notes,
+        [noteId]: { ...note, blocks: newBlocks },
+      };
+    });
+    this.setBlocks((blocks) => ({
+      ...blocks,
+      [block.id]: block,
+    }));
+    this.setBlockToNote((blockToNote) => ({
+      ...blockToNote,
+      [block.id]: noteId,
+    }));
+  };
+
+  updateBlock = (blockId: string, blockUpdates: Partial<Block>) => {
+    this.setBlocks((blocks) => ({
+      ...blocks,
+      [blockId]: { ...blocks[blockId], ...blockUpdates },
+    }));
+  };
 }
 
-/**Main interface for controlling the current view */
-class ViewApi {}
+class NoteApi {
+  constructor(private noteId: string, private notesApi: NotesApi) {}
+
+  insertBlockAbove = (blockId: string, blockInsert: Block | null = null) => {
+    const note = this.notesApi.getNoteForBlock(blockId);
+    const block = blockInsert || this.notesApi.createBlock();
+    const index = note.blocks.indexOf(blockId);
+    this.notesApi.insertBlock(note.id, block, index);
+  };
+
+  insertBlockBelow = (blockId: string, blockInsert: Block | null = null) => {
+    const note = this.notesApi.getNoteForBlock(blockId);
+    if (note.id !== this.noteId) {
+      throw new Error("Block does not belong to this note");
+    }
+    const block = blockInsert || this.notesApi.createBlock();
+    const index = note.blocks.indexOf(blockId) + 1;
+    this.notesApi.insertBlock(note.id, block, index);
+  };
+
+  splitBlock = (blockId: string, index: number) => {
+    const block = this.notesApi.getBlock(blockId);
+    const textBefore = block.text.slice(0, index);
+    const textAfter = block.text.slice(index);
+    this.notesApi.updateBlock(blockId, { text: textBefore });
+    const newBlock = this.notesApi.createBlock(block.type, textAfter);
+    this.insertBlockBelow(block.id, newBlock);
+    return newBlock.id;
+  };
+}
 
 function App() {
   const [blocks, setBlocks] = useState<Blocks>({});

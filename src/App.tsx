@@ -1,27 +1,13 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import "./App.css";
-
-function uuid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-type Block = {
-  id: string;
-  type: string;
-  text: string;
-};
-
-type Note = {
-  id: string;
-  title: string | null;
-  blocks: string[];
-  createdAt: number;
-  updatedAt: number;
-};
+import { Note, Block } from "./types";
+import { useNotes } from "./useNotes";
 
 // Same as Note but with the blocks replaced with the actual block objects
 type NoteWithBlocks = Omit<Note, "blocks"> & { blocks: Block[] };
@@ -118,7 +104,12 @@ class NotesApi {
     };
   };
 
-  addNote = (partialNote: Partial<Note> & { lines: string[] }) => {
+  addNote = (
+    partialNote: Partial<Note> & { lines: string[] } = {
+      title: null,
+      lines: [],
+    }
+  ) => {
     const note = this.createNote(partialNote.title, partialNote.lines);
     this.setNotes((ns) => ({
       ...ns,
@@ -170,6 +161,7 @@ class NotesApi {
 class ViewApi {
   constructor(
     private notesApi: NotesApi,
+    private notesList: NotesAndBlocksList,
     public selectionStart: number,
     public selectionEnd: number,
     public setSelectionStart: React.Dispatch<React.SetStateAction<number>>,
@@ -179,6 +171,64 @@ class ViewApi {
       React.SetStateAction<string | null>
     >
   ) {}
+
+  setFocus = (blockId: string | null) => {
+    this.setFocusedBlockId(blockId);
+  };
+
+  getNoteAbove = (noteId: string) => {
+    for (let i = 0; i < this.notesList.length; i++) {
+      if (this.notesList[i].id === noteId) {
+        return this.notesList[i - 1];
+      }
+    }
+    return null;
+  };
+
+  getNoteBelow = (noteId: string) => {
+    for (let i = 0; i < this.notesList.length; i++) {
+      if (this.notesList[i].id === noteId) {
+        return this.notesList[i + 1];
+      }
+    }
+    return null;
+  };
+
+  setFocusBelow = () => {
+    if (!this.focusedBlockId) {
+      return;
+    }
+    const note = this.notesApi.getNoteForBlock(this.focusedBlockId);
+    const index = note.blocks.indexOf(this.focusedBlockId);
+    if (index >= note.blocks.length - 1) {
+      // At the bottom of a note, so move to the note below
+      const blocks = this.getNoteBelow(note.id)?.blocks;
+      const firstBlock = blocks?.[0];
+      if (firstBlock) {
+        this.setFocus(firstBlock.id);
+      }
+    } else {
+      this.setFocus(note.blocks[index + 1]);
+    }
+  };
+
+  setFocusAbove = () => {
+    if (!this.focusedBlockId) {
+      return;
+    }
+    const note = this.notesApi.getNoteForBlock(this.focusedBlockId);
+    const index = note.blocks.indexOf(this.focusedBlockId);
+    if (index === 0) {
+      // At the top of a note, so move to the note above
+      const blocks = this.getNoteAbove(note.id)?.blocks;
+      const lastBlock = blocks?.[blocks.length - 1];
+      if (lastBlock) {
+        this.setFocus(lastBlock.id);
+      }
+    } else {
+      this.setFocus(note.blocks[index + 1]);
+    }
+  };
 }
 
 class NoteApi {
@@ -215,27 +265,13 @@ class NoteApi {
 function Block({
   block,
   isFocused,
-  setFocus,
-  updateBlock,
-  setFocusAbove,
-  setFocusBelow,
-  splitBlock,
-  selectionStart = 0,
-  setSelectionStart,
-  indentBlock,
-  unindentBlock,
+  view,
+  noteApi,
 }: {
   block: Block;
   isFocused: boolean;
-  setFocus: (focus: boolean) => void;
-  updateBlock: (block: Block) => void;
-  setFocusAbove: () => void;
-  setFocusBelow: () => void;
-  splitBlock: (index: number) => void;
-  selectionStart: number;
-  setSelectionStart: (selectionStart: number) => void;
-  indentBlock: (blockId: string) => void;
-  unindentBlock: (blockId: string) => void;
+  view: ViewApi;
+  noteApi: NoteApi;
 }) {
   const fontSize = 16;
   const minHeight = fontSize + 2;
@@ -245,28 +281,28 @@ function Block({
 
   function onClick() {
     if (!isFocused) {
-      setFocus(true);
+      view.setFocus(block.id);
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setFocusBelow();
+      view.setFocusBelow(block.id);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setFocusAbove();
+      view.setFocusAbove(block.id);
     } else if (e.key === "Escape") {
-      setFocus(false);
+      view.setFocus(null);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      splitBlock(textArea.current?.selectionStart || 0);
+      noteApi.splitBlock(textArea.current?.selectionStart || 0);
     } else if (e.key === "Tab") {
       e.preventDefault();
       if (e.shiftKey) {
-        unindentBlock(block.id);
+        noteApi.unindentBlock(block.id);
       } else {
-        indentBlock(block.id);
+        noteApi.indentBlock(block.id);
       }
     }
   }
@@ -372,20 +408,12 @@ function Block({
 
 function Note({
   note,
-  updateBlock,
-  focusedBlockId,
-  setFocusedBlockId,
-  splitBlock,
-  selectionStart,
-  setSelectionStart,
+  notes,
+  view,
 }: {
   note: NoteWithBlocks;
-  updateBlock: (block: Block) => void;
-  focusedBlockId: string | null;
-  setFocusedBlockId: (id: string | null) => void;
-  splitBlock: (blockId: string, index: number) => Block;
-  selectionStart: number;
-  setSelectionStart: (selectionStart: number) => void;
+  notes: NotesApi;
+  view: ViewApi;
 }) {
   const [indentation, setIndentation] = useState<{ [key: string]: number }>(
     () => {
@@ -396,6 +424,8 @@ function Note({
       return indentation;
     }
   );
+
+  const noteApi = useMemo(() => new NoteApi(note.id, notes), [note, notes]);
 
   function indentBlock(blockId: string) {
     setIndentation((indentation) => ({
@@ -428,6 +458,8 @@ function Note({
           <Block
             key={block.id}
             block={block}
+            noteApi={noteApi}
+            view={view}
             updateBlock={updateBlock}
             isFocused={block.id === focusedBlockId}
             setFocus={(focus) =>
@@ -465,7 +497,18 @@ function App() {
   const [selectionEnd, setSelectionEnd] = useState(0);
   const [blockToNote, setBlockToNote] = useState<BlockToNote>({});
 
-  const notes = useMemo(
+  const [notes] = useNotes([
+    {
+      title: "Note 1",
+      lines: ["This is a note", "It has two lines"],
+    },
+    {
+      title: "Note 2",
+      lines: ["This is another note", "It also has two lines"],
+    },
+  ]);
+
+  const notesApi = useMemo(
     () =>
       new NotesApi(
         notesMap,
@@ -478,10 +521,13 @@ function App() {
     [notesMap, blocksMap]
   );
 
+  const noteList = notesApi.getAll().sort((a, b) => a.createdAt - b.createdAt);
+
   const view = useMemo(
     () =>
       new ViewApi(
         notesApi,
+        noteList,
         selectionStart,
         selectionEnd,
         setSelectionStart,
@@ -489,7 +535,7 @@ function App() {
         focusedBlockId,
         setFocusedBlockId
       ),
-    [notesApi, focusedBlockId, selectionStart, selectionEnd]
+    [notesApi, noteList, focusedBlockId, selectionStart, selectionEnd]
   );
 
   // Initialize app with some dummy data
@@ -506,137 +552,29 @@ function App() {
     ]);
   }, []);
 
-  function createNote(title: string | null = null, lines: string[] = []) {
-    const blocks = (lines.length > 0 ? lines : [""]).map((line) => ({
-      id: uuid(),
-      type: "text",
-      text: line,
-    }));
-    return {
-      id: uuid(),
-      title,
-      blocks,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-  }
-
-  function addNote() {
-    const note = createNote();
-    setNotesMap((ns) => ({
-      ...ns,
-      [note.id]: { ...note, blocks: note.blocks.map((b) => b.id) },
-    }));
-    setBlocksMap((blocks) => {
-      const newBlocks = { ...blocks };
-      note.blocks.forEach((block) => {
-        newBlocks[block.id] = block;
-      });
-      return newBlocks;
-    });
-    note.blocks.forEach((block) => {
-      setBlockToNote((blockToNote) => ({
-        ...blockToNote,
-        [block.id]: note.id,
-      }));
-    });
-  }
-
-  function updateBlock(block: Block) {
-    setBlocksMap((blocks) => ({
-      ...blocks,
-      [block.id]: block,
-    }));
-  }
-
-  function insertBlockAbove(blockId: string, blockInsert: Block | null = null) {
-    const note = notesMap[blockToNote[blockId]];
-    const newBlock = blockInsert || {
-      id: uuid(),
-      type: "text",
-      text: "",
-    };
-    setBlocksMap((blocks) => ({
-      ...blocks,
-      [newBlock.id]: newBlock,
-    }));
-    setNotesMap((notes) => ({
-      ...notes,
-      [note.id]: {
-        ...note,
-        blocks: note.blocks
-          .slice(0, note.blocks.indexOf(blockId))
-          .concat([newBlock.id])
-          .concat(note.blocks.slice(note.blocks.indexOf(blockId))),
-      },
-    }));
-    setBlockToNote((blockToNote) => ({
-      ...blockToNote,
-      [newBlock.id]: note.id,
-    }));
-    setFocusedBlockId(newBlock.id);
-  }
-
-  function insertBlockBelow(blockId: string, blockInsert: Block | null = null) {
-    const note = notesMap[blockToNote[blockId]];
-    const newBlock = blockInsert || {
-      id: uuid(),
-      type: "text",
-      text: "",
-    };
-    setBlocksMap((blocks) => ({
-      ...blocks,
-      [newBlock.id]: newBlock,
-    }));
-    setNotesMap((notes) => ({
-      ...notes,
-      [note.id]: {
-        ...note,
-        blocks: note.blocks
-          .slice(0, note.blocks.indexOf(blockId) + 1)
-          .concat([newBlock.id])
-          .concat(note.blocks.slice(note.blocks.indexOf(blockId) + 1)),
-      },
-    }));
-    setBlockToNote((blockToNote) => ({
-      ...blockToNote,
-      [newBlock.id]: note.id,
-    }));
-    setFocusedBlockId(newBlock.id);
-  }
-
-  function splitBlock(blockId: string, index: number) {
-    const block = blocksMap[blockId];
-    const textBefore = block.text.slice(0, index);
-    const textAfter = block.text.slice(index);
-    updateBlock({ ...block, text: textBefore });
-    const newBlock = {
-      id: uuid(),
-      type: "text",
-      text: textAfter,
-    };
-    insertBlockBelow(block.id, newBlock);
-    setFocusedBlockId(newBlock.id);
-    return newBlock;
-  }
-
-  const noteList = notesApi.getAll().sort((a, b) => a.createdAt - b.createdAt);
+  const keyDownHandler = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!view.focusedBlockId) {
+        return;
+      }
+      e.preventDefault();
+      if (e.key === "ArrowDown") {
+        view.setFocusBelow();
+      } else if (e.key === "ArrowUp") {
+        view.setFocusAbove();
+      } else if (e.key === "Escape") {
+        view.setFocus(null);
+      }
+    },
+    [view]
+  );
 
   return (
-    <div className="App">
+    <div className="App" onKeyDown={keyDownHandler}>
       {noteList.map((note) => (
-        <Note
-          key={note.id}
-          note={note}
-          updateBlock={updateBlock}
-          focusedBlockId={focusedBlockId}
-          setFocusedBlockId={setFocusedBlockId}
-          splitBlock={splitBlock}
-          selectionStart={selectionStart}
-          setSelectionStart={setSelectionStart}
-        />
+        <Note key={note.id} note={note} notes={notesApi} view={view} />
       ))}
-      <button onClick={() => addNote()}>Add Note</button>
+      <button onClick={() => notesApi.addNote()}>Add Note</button>
     </div>
   );
 }

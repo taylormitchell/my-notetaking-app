@@ -1,18 +1,18 @@
-import { useState, useRef } from "react";
-import { Notes, Note, Block } from "./useNotes";
+import { useState, useRef, ReactNode } from "react";
+import { Notes, Note, Block } from "../useNotes";
 
-function BlockComponent({
+function BlockView({
   block,
   isFocused,
   setFocus,
-  updateBlock,
+  updateText,
   selectionStart,
   setSelectionStart,
 }: {
   block: Block;
   isFocused: boolean;
   setFocus: (blockId: string) => void;
-  updateBlock: (block: Block) => void;
+  updateText: (text: string) => void;
   selectionStart: number;
   setSelectionStart: (selectionStart: number) => void;
 }) {
@@ -96,7 +96,7 @@ function BlockComponent({
                 e.target.style.height = `${e.target.scrollHeight}px`;
                 return e.target.scrollHeight;
               });
-              updateBlock({ ...block, text: e.target.value });
+              updateText(e.target.value);
             }}
             onSelect={(e) => {
               if (textArea.current) {
@@ -126,13 +126,7 @@ function BlockComponent({
   );
 }
 
-function NoteComponent({
-  note,
-  focusedBlockId,
-}: {
-  note: Note;
-  focusedBlockId: string | null;
-}) {
+function NoteView({ note, blocks }: { note: Note; blocks: ReactNode[] }) {
   return (
     <div
       style={{
@@ -141,21 +135,13 @@ function NoteComponent({
       }}
     >
       <h1>{note.title}</h1>
-      {note.blocks.map((block, i) => (
+      {blocks.map((block, i) => (
         <div
-          style={{
-            marginLeft: `${indentation[block.id] * 20}px`,
-          }}
+        // style={{
+        //   marginLeft: `${indentation[block.id] * 20}px`,
+        // }}
         >
-          <BlockComponent
-            key={block.id}
-            block={block}
-            isFocused={block.id === focusedBlockId}
-            setFocus={setFocusedBlockId}
-            updateBlock={updateBlock}
-            selectionStart={selectionStart}
-            setSelectionStart={setSelectionStart}
-          />
+          {block}
         </div>
       ))}
     </div>
@@ -259,7 +245,21 @@ export function ColumnView(props: ColumnViewProps) {
   return (
     <div className="Column" onKeyDown={keyDownHandler}>
       {notesList.map((note) => (
-        <NoteComponent key={note.id} note={note} />
+        <NoteView
+          key={note.id}
+          note={note}
+          blocks={note.blocks.map((block) => (
+            <BlockView
+              key={block.id}
+              block={block}
+              isFocused={block.id === focusedBlockId}
+              setFocus={() => setFocusedBlockId(block.id)}
+              updateText={(text) => notesDb.updateBlock(block.id, { text })}
+              selectionStart={selectionStart}
+              setSelectionStart={setSelectionStart}
+            />
+          ))}
+        />
       ))}
       <button onClick={() => notesDb.addNote()}>Add Note</button>
     </div>

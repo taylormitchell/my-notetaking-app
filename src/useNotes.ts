@@ -127,6 +127,13 @@ export class Notes {
     });
   };
 
+  updateNote = (note: Note) => {
+    this.setNotes((ns) => ({
+      ...ns,
+      [note.id]: { ...note, blocks: note.blocks.map((b) => b.id) },
+    }));
+  };
+
   insertBlock = (noteId: string, block: Block, index: number) => {
     this.setNotes((notes) => {
       const note = notes[noteId];
@@ -179,9 +186,7 @@ export class Notes {
   };
 }
 
-export function useNotes(
-  state: { title: string; lines: string[] }[] = []
-): Notes {
+export function useNotes(state: { title: string; lines: string[] }[] = []): Notes {
   const [blocksMap, setBlocksMap] = useState<BlocksMap>({});
   const [notesMap, setNotesMap] = useState<NotesMap>({});
   const [blockToNote, setBlockToNote] = useState<BlockToNote>({});

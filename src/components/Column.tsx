@@ -8,25 +8,21 @@ function BlockView({
   updateText,
   selectionStart,
   setSelectionStart,
+  onClick,
 }: {
   block: Block;
   isFocused: boolean;
-  setFocus: (blockId: string) => void;
+  setFocus: () => void;
   updateText: (text: string) => void;
   selectionStart: number;
   setSelectionStart: (selectionStart: number) => void;
+  onClick: () => void;
 }) {
   const fontSize = 16;
   const minHeight = fontSize + 2;
   const [height, setHeight] = useState(minHeight);
   const textArea = useRef<HTMLTextAreaElement>(null);
   const paragraph = useRef<HTMLParagraphElement>(null);
-
-  function onClick() {
-    if (!isFocused) {
-      setFocus(block.id);
-    }
-  }
 
   return (
     <div
@@ -82,12 +78,9 @@ function BlockView({
               overflow: "hidden",
             }}
             defaultValue={block.text}
-            // onBlur={(e) => {
-            //   setFocus(false);
+            // onFocus={(e) => {
+            //   e.target.selectionStart = selectionStart;
             // }}
-            onFocus={(e) => {
-              e.target.selectionStart = selectionStart;
-            }}
             onChange={(e) => {
               setHeight(() => {
                 // if we don't set the height to 0 first, the scroll height won't
@@ -214,7 +207,7 @@ export function ColumnView(props: ColumnViewProps) {
         setFocus(lastBlock.id);
       }
     } else {
-      setFocus(note.blocks[index + 1]);
+      setFocus(note.blocks[index - 1]);
     }
   };
 
@@ -222,16 +215,19 @@ export function ColumnView(props: ColumnViewProps) {
     if (!focusedBlockId) {
       return;
     }
-    e.preventDefault();
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" && !e.shiftKey) {
+      e.preventDefault();
       setFocusBelow();
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === "ArrowUp" && !e.shiftKey) {
+      e.preventDefault();
       setFocusAbove();
     } else if (e.key === "Escape") {
+      e.preventDefault();
       setFocus(null);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      notesDb.splitBlock(focusedBlockId, selectionStart);
+      const newBlockId = notesDb.splitBlock(focusedBlockId, selectionStart);
+      setFocus(newBlockId);
       // } else if (e.key === "Tab") {
       //   e.preventDefault();
       //   if (e.shiftKey) {
@@ -239,6 +235,13 @@ export function ColumnView(props: ColumnViewProps) {
       //   } else {
       //     notesDb.indentBlock(block.id);
       //   }
+    } else if (e.key === "Backspace") {
+      const block = notesDb.getBlock(focusedBlockId);
+      if (block.text === "") {
+        e.preventDefault();
+        notesDb.deleteBlock(focusedBlockId);
+        setFocusAbove();
+      }
     }
   };
 
@@ -257,6 +260,7 @@ export function ColumnView(props: ColumnViewProps) {
               updateText={(text) => notesDb.updateBlock(block.id, { text })}
               selectionStart={selectionStart}
               setSelectionStart={setSelectionStart}
+              onClick={() => (focusedBlockId !== block.id ? setFocus(block.id) : null)}
             />
           ))}
         />

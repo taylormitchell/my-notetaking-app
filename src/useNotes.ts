@@ -171,6 +171,27 @@ export class Notes {
     return newBlock.id;
   };
 
+  deleteBlock = (blockId: string) => {
+    const note = this.getNoteForBlock(blockId);
+    this.setNotes((notes) => {
+      const newBlocks = note.blocks.filter((b) => b !== blockId);
+      return {
+        ...notes,
+        [note.id]: { ...note, blocks: newBlocks },
+      };
+    });
+    this.setBlocks((blocks) => {
+      const newBlocks = { ...blocks };
+      delete newBlocks[blockId];
+      return newBlocks;
+    });
+    this.setBlockToNote((blockToNote) => {
+      const newBlockToNote = { ...blockToNote };
+      delete newBlockToNote[blockId];
+      return newBlockToNote;
+    });
+  };
+
   insertBlockAbove = (blockId: string, blockInsert: Block | null = null) => {
     const note = this.getNoteForBlock(blockId);
     const block = blockInsert || new Block();
@@ -209,7 +230,7 @@ export function useNotes(state: { title: string; lines: string[] }[] = []): Note
     setNotesMap(notes);
     setBlocksMap(blocks);
     setBlockToNote(blockToNote);
-  });
+  }, []);
 
   const notes = new Notes(
     notesMap,

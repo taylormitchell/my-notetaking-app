@@ -1,4 +1,4 @@
-import { useState, useRef, ReactNode } from "react";
+import { useState, useRef, ReactNode, useEffect } from "react";
 import { Notes, Note, Block } from "../useNotes";
 
 function BlockView({
@@ -16,13 +16,32 @@ function BlockView({
   updateText: (text: string) => void;
   selectionStart: number;
   setSelectionStart: (selectionStart: number) => void;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const fontSize = 16;
-  const minHeight = fontSize + 2;
-  const [height, setHeight] = useState(minHeight);
-  const textArea = useRef<HTMLTextAreaElement>(null);
-  const paragraph = useRef<HTMLParagraphElement>(null);
+  const editableDiv = useRef<HTMLDivElement>(null);
+
+  const [innerText, setInnerText] = useState("");
+
+  useEffect(() => {
+    if (block.text !== innerText) {
+      setInnerText(block.text);
+      if (editableDiv.current) {
+        editableDiv.current.innerHTML = block.text;
+      }
+    }
+    if (isFocused) {
+      const el = editableDiv.current;
+      if (!el) return;
+      el.focus();
+      //   const range = document.createRange();
+      //   const sel = window.getSelection();
+      //   range.setStart(el.childNodes[0], selectionStart);
+      //   range.collapse(true);
+      //   sel?.removeAllRanges();
+      //   sel?.addRange(range);
+    }
+  });
 
   return (
     <div
@@ -39,7 +58,6 @@ function BlockView({
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          height: `${minHeight}px`,
           paddingRight: "10px",
         }}
       >
@@ -60,60 +78,29 @@ function BlockView({
         className="block"
         onClick={onClick}
       >
-        {isFocused ? (
-          <textarea
-            ref={textArea}
-            rows={1}
-            style={{
-              display: "block",
-              fontSize: `${fontSize}px`,
-              fontFamily: "sans-serif",
-              padding: 0,
-              margin: 0,
-              width: "100%",
-              height: `${height}px`,
-              border: "none",
-              outline: "none",
-              resize: "none",
-              overflow: "hidden",
-            }}
-            defaultValue={block.text}
-            // onFocus={(e) => {
-            //   e.target.selectionStart = selectionStart;
-            // }}
-            onChange={(e) => {
-              setHeight(() => {
-                // if we don't set the height to 0 first, the scroll height won't
-                // shrink when the text is deleted
-                e.target.style.height = "";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-                return e.target.scrollHeight;
-              });
-              updateText(e.target.value);
-            }}
-            onSelect={(e) => {
-              if (textArea.current) {
-                setSelectionStart(textArea.current.selectionStart);
-              }
-            }}
-            autoFocus
-          />
-        ) : (
-          <p
-            ref={paragraph}
-            style={{
-              fontSize: `${fontSize}px`,
-              fontFamily: "sans-serif",
-              height: `${height}px`,
-              padding: 0,
-              margin: 0,
-              cursor: "text",
-            }}
-            className="block-text"
-          >
-            {block.text}
-          </p>
-        )}
+        <div
+          ref={editableDiv}
+          style={{
+            fontSize: `${fontSize}px`,
+            fontFamily: "sans-serif",
+            padding: 0,
+            margin: 0,
+            cursor: "text",
+            border: "none",
+            outline: "none",
+          }}
+          contentEditable
+          className="block-text"
+          onInput={(e) => {
+            setInnerText(e.currentTarget.innerText);
+            updateText(e.currentTarget.innerText);
+          }}
+          onKeyUp={(e) => {
+            if (isFocused) {
+              setSelectionStart(document.getSelection()?.anchorOffset || 0);
+            }
+          }}
+        />
       </div>
     </div>
   );
@@ -245,6 +232,13 @@ export function ColumnView(props: ColumnViewProps) {
     }
   };
 
+  const clickHandler = (blockId: string, e: React.MouseEvent) => {
+    if (focusedBlockId === blockId) {
+      return;
+    }
+    setFocus(blockId);
+  };
+
   return (
     <div className="Column" onKeyDown={keyDownHandler}>
       {notesList.map((note) => (
@@ -260,7 +254,7 @@ export function ColumnView(props: ColumnViewProps) {
               updateText={(text) => notesDb.updateBlock(block.id, { text })}
               selectionStart={selectionStart}
               setSelectionStart={setSelectionStart}
-              onClick={() => (focusedBlockId !== block.id ? setFocus(block.id) : null)}
+              onClick={(e) => clickHandler(block.id, e)}
             />
           ))}
         />

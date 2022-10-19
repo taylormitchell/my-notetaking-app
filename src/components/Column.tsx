@@ -38,25 +38,26 @@ function BlockView({
   const [innerText, setInnerText] = useState("");
 
   useEffect(() => {
-    if (block.text !== innerText) {
-      const text = block.text.replace(/\s/g, " ");
-      setInnerText(text);
-      if (editableDiv.current) {
-        editableDiv.current.innerHTML = text;
-      }
-    }
     if (isFocused) {
       const el = editableDiv.current;
       if (!el) return;
       el.focus();
-      //   const range = document.createRange();
-      //   const sel = window.getSelection();
-      //   range.setStart(el.childNodes[0], selectionStart);
-      //   range.collapse(true);
-      //   sel?.removeAllRanges();
-      //   sel?.addRange(range);
+      updateSelection();
     }
-  }, [block.text, isFocused, innerText]);
+  }, [isFocused]);
+
+  useEffect(() => {
+    if (block.text !== innerText) {
+      setInnerText(block.text);
+      if (editableDiv.current) {
+        editableDiv.current.innerHTML = block.text.replace(/\s/g, "\u00a0");
+      }
+    }
+  }, [block.text, innerText]);
+
+  useEffect(() => {
+    updateSelection();
+  }, [editableDiv.current?.childNodes]);
 
   const Bullet = () => (
     <div
@@ -79,21 +80,33 @@ function BlockView({
     </div>
   );
 
+  function updateSelection() {
+    let pos = 0;
+    if (selectionStart < 0) {
+      pos = Math.max(0, block.text.length + selectionStart + 1);
+    } else {
+      pos = Math.min(block.text.length, selectionStart);
+    }
+    if (!pos) return;
+    const el = editableDiv.current;
+    if (!el) return;
+    const range = document.createRange();
+    const sel = window.getSelection();
+    const textNode = el.childNodes[0];
+    if (!textNode) return;
+    range.setStart(textNode, pos);
+    range.collapse(true);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    setSelectionStart(pos);
+  }
+
   function keyDownHandler(e: React.KeyboardEvent) {
     const sel = window.getSelection();
     const hasSelection = sel?.anchorOffset !== sel?.focusOffset;
-    if (selectionStart === 0 && !hasSelection) {
-      if (block.type === "text") {
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          deleteBlock();
-        }
-      } else {
-        if (e.key === "Backspace" || e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          updateBlock({ type: "text" });
-        }
+    if (selectionStart === 0 && hasSelection) {
+      if (e.key === "Backspace") {
+        e.stopPropagation();
       }
     }
   }
@@ -102,11 +115,6 @@ function BlockView({
     const pos = document.getSelection()?.anchorOffset || 0;
     if (isFocused) {
       setSelectionStart(pos);
-    }
-    if (block.type !== "bullet" && block.text.slice(0, pos).match(/-\s/)) {
-      updateBlock({ text: block.text.slice(pos), type: "bullet" });
-    } else if (block.type !== "todo" && block.text.slice(0, pos).match(/\[\]\s/)) {
-      updateBlock({ text: block.text.slice(pos), type: "todo" });
     }
   }
 
@@ -132,7 +140,7 @@ function BlockView({
         margin: "10px",
       }}
     >
-      <BlockPrefix blockType={block.type} />
+      {/* <BlockPrefix blockType={block.type} /> */}
       <div
         style={{
           textAlign: "left",
@@ -162,23 +170,8 @@ function BlockView({
           onKeyDown={keyDownHandler}
           onKeyUp={keyUpHandler}
           onFocus={() => {
-            // set selection to selectionStart
-            let pos = 0;
-            if (selectionStart < 0) {
-              pos = Math.max(0, block.text.length + selectionStart + 1);
-            } else {
-              pos = Math.min(block.text.length, selectionStart);
-            }
-            if (!pos) return;
-            const el = editableDiv.current;
-            if (!el) return;
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.setStart(el.childNodes[0], pos);
-            range.collapse(true);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-            setSelectionStart(pos);
+            setFocus();
+            updateSelection();
           }}
         />
       </div>
@@ -293,6 +286,18 @@ export function ColumnView(props: ColumnViewProps) {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const newBlockId = notesDb.splitBlock(focusedBlockId, selectionStart);
+      // Check if the focused block started with a prefix
+      const focusedBlock = notesDb.getBlock(focusedBlockId);
+      const prefix = focusedBlock.text.match(/^\s*(-|\*|(\[\s?\]))?\s+/);
+      if (prefix) {
+        notesDb.updateBlock(newBlockId, (block) => ({
+          ...block,
+          text: prefix[0] + block.text,
+        }));
+        setSelectionStart(-1);
+      } else {
+        setSelectionStart(0);
+      }
       setFocus(newBlockId);
       // } else if (e.key === "Tab") {
       //   e.preventDefault();
@@ -301,6 +306,15 @@ export function ColumnView(props: ColumnViewProps) {
       //   } else {
       //     notesDb.indentBlock(block.id);
       //   }
+    } else if (e.key === "Backspace") {
+      if (selectionStart === 0) {
+        // const focusedBlock = notesDb.getBlock(focusedBlockId);
+        const prevBlockId = notesDb.mergeBlockWithPrevious(focusedBlockId);
+        if (!prevBlockId) return;
+        e.preventDefault();
+        setFocus(prevBlockId);
+        setSelectionStart(notesDb.getBlock(prevBlockId).text.length);
+      }
     }
   };
 

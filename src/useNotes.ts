@@ -156,10 +156,15 @@ export class Notes {
     }));
   };
 
-  updateBlock = (blockId: string, blockUpdates: Partial<Block>) => {
+  updateBlock = (
+    blockId: string,
+    update: Partial<BlockRecord> | ((block: BlockRecord) => BlockRecord)
+  ) => {
+    const updateFunc =
+      typeof update === "function" ? update : (block: BlockRecord) => ({ ...block, ...update });
     this.setBlocks((blocks) => ({
       ...blocks,
-      [blockId]: { ...blocks[blockId], ...blockUpdates },
+      [blockId]: updateFunc(blocks[blockId]),
     }));
   };
 
@@ -171,6 +176,19 @@ export class Notes {
     const newBlock = new Block(block.type, textAfter);
     this.insertBlockBelow(block.id, newBlock);
     return newBlock.id;
+  };
+
+  mergeBlockWithPrevious = (blockId: string) => {
+    const block = this.getBlock(blockId);
+    const note = this.getNoteForBlock(blockId);
+    const blockIndex = note.blocks.indexOf(blockId);
+    if (blockIndex === 0) {
+      return;
+    }
+    const prevBlock = this.getBlock(note.blocks[blockIndex - 1]);
+    this.updateBlock(prevBlock.id, { text: prevBlock.text + block.text });
+    this.deleteBlock(block.id);
+    return prevBlock.id;
   };
 
   deleteBlock = (blockId: string) => {

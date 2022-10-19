@@ -1,22 +1,36 @@
-import { useState, useRef, ReactNode, useEffect } from "react";
+import React, { useState, useRef, ReactNode, useEffect } from "react";
 import { Notes, Note, Block } from "../useNotes";
+
+function Checkbox({ checked = false }: { checked?: boolean }) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => {
+        checked = e.target.checked;
+      }}
+    />
+  );
+}
 
 function BlockView({
   block,
   isFocused,
   setFocus,
-  updateText,
-  selectionStart,
+  updateBlock,
+  selectionStart = 0,
   setSelectionStart,
   onClick,
+  deleteBlock,
 }: {
   block: Block;
   isFocused: boolean;
   setFocus: () => void;
-  updateText: (text: string) => void;
+  updateBlock: (update: Partial<Block>) => void;
   selectionStart: number;
   setSelectionStart: (selectionStart: number) => void;
   onClick: (e: React.MouseEvent) => void;
+  deleteBlock: () => void;
 }) {
   const fontSize = 16;
   const editableDiv = useRef<HTMLDivElement>(null);
@@ -25,9 +39,10 @@ function BlockView({
 
   useEffect(() => {
     if (block.text !== innerText) {
-      setInnerText(block.text);
+      const text = block.text.replace(/\s/g, " ");
+      setInnerText(text);
       if (editableDiv.current) {
-        editableDiv.current.innerHTML = block.text;
+        editableDiv.current.innerHTML = text;
       }
     }
     if (isFocused) {
@@ -41,7 +56,72 @@ function BlockView({
       //   sel?.removeAllRanges();
       //   sel?.addRange(range);
     }
-  });
+  }, [block.text, isFocused, innerText]);
+
+  const Bullet = () => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingRight: "10px",
+      }}
+    >
+      <div
+        style={{
+          width: "5px",
+          height: "5px",
+          borderRadius: "2.5px",
+          backgroundColor: "black",
+        }}
+      />
+    </div>
+  );
+
+  function keyDownHandler(e: React.KeyboardEvent) {
+    const sel = window.getSelection();
+    const hasSelection = sel?.anchorOffset !== sel?.focusOffset;
+    if (selectionStart === 0 && !hasSelection) {
+      if (block.type === "text") {
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          deleteBlock();
+        }
+      } else {
+        if (e.key === "Backspace" || e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          updateBlock({ type: "text" });
+        }
+      }
+    }
+  }
+
+  function keyUpHandler(e: React.KeyboardEvent) {
+    const pos = document.getSelection()?.anchorOffset || 0;
+    if (isFocused) {
+      setSelectionStart(pos);
+    }
+    if (block.type !== "bullet" && block.text.slice(0, pos).match(/-\s/)) {
+      updateBlock({ text: block.text.slice(pos), type: "bullet" });
+    } else if (block.type !== "todo" && block.text.slice(0, pos).match(/\[\]\s/)) {
+      updateBlock({ text: block.text.slice(pos), type: "todo" });
+    }
+  }
+
+  function BlockPrefix({ blockType }: { blockType: Block["type"] }) {
+    switch (blockType) {
+      case "text":
+        return null;
+      case "bullet":
+        return <Bullet />;
+      case "todo":
+        return <Checkbox />;
+      default:
+        return null;
+    }
+  }
 
   return (
     <div
@@ -52,24 +132,7 @@ function BlockView({
         margin: "10px",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          paddingRight: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: "5px",
-            height: "5px",
-            borderRadius: "2.5px",
-            backgroundColor: "black",
-          }}
-        />
-      </div>
+      <BlockPrefix blockType={block.type} />
       <div
         style={{
           textAlign: "left",
@@ -77,6 +140,7 @@ function BlockView({
         }}
         className="block"
         onClick={onClick}
+        data-block-id={block.id}
       >
         <div
           ref={editableDiv}
@@ -93,12 +157,28 @@ function BlockView({
           className="block-text"
           onInput={(e) => {
             setInnerText(e.currentTarget.innerText);
-            updateText(e.currentTarget.innerText);
+            updateBlock({ text: e.currentTarget.innerText });
           }}
-          onKeyUp={(e) => {
-            if (isFocused) {
-              setSelectionStart(document.getSelection()?.anchorOffset || 0);
+          onKeyDown={keyDownHandler}
+          onKeyUp={keyUpHandler}
+          onFocus={() => {
+            // set selection to selectionStart
+            let pos = 0;
+            if (selectionStart < 0) {
+              pos = Math.max(0, block.text.length + selectionStart + 1);
+            } else {
+              pos = Math.min(block.text.length, selectionStart);
             }
+            if (!pos) return;
+            const el = editableDiv.current;
+            if (!el) return;
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.setStart(el.childNodes[0], pos);
+            range.collapse(true);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+            setSelectionStart(pos);
           }}
         />
       </div>
@@ -136,7 +216,6 @@ type ColumnViewProps = {
 export function ColumnView(props: ColumnViewProps) {
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
   const [selectionStart, setSelectionStart] = useState(0);
-  const [selectionEnd, setSelectionEnd] = useState(0);
 
   const { notesDb, notesList } = props;
 
@@ -222,13 +301,6 @@ export function ColumnView(props: ColumnViewProps) {
       //   } else {
       //     notesDb.indentBlock(block.id);
       //   }
-    } else if (e.key === "Backspace") {
-      const block = notesDb.getBlock(focusedBlockId);
-      if (block.text === "") {
-        e.preventDefault();
-        notesDb.deleteBlock(focusedBlockId);
-        setFocusAbove();
-      }
     }
   };
 
@@ -251,7 +323,12 @@ export function ColumnView(props: ColumnViewProps) {
               block={block}
               isFocused={block.id === focusedBlockId}
               setFocus={() => setFocusedBlockId(block.id)}
-              updateText={(text) => notesDb.updateBlock(block.id, { text })}
+              updateBlock={(update: Partial<Block>) => notesDb.updateBlock(block.id, update)}
+              deleteBlock={() => {
+                notesDb.deleteBlock(block.id);
+                setSelectionStart(-1);
+                setFocusAbove();
+              }}
               selectionStart={selectionStart}
               setSelectionStart={setSelectionStart}
               onClick={(e) => clickHandler(block.id, e)}

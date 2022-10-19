@@ -16,13 +16,15 @@ type BlocksMap = {
   [key: string]: BlockRecord;
 };
 
+export type BlockType = "text" | "bullet" | "todo";
+
 type BlockToNote = {
   [key: string]: string;
 };
 
 export type BlockRecord = {
   id: string;
-  type: string;
+  type: BlockType;
   text: string;
 };
 
@@ -42,7 +44,7 @@ export class Note {
   updatedAt: number;
 
   constructor(title: string | null = null, lines: string[] = []) {
-    const blocks = (lines.length > 0 ? lines : [""]).map((line) => ({
+    const blocks: Block[] = (lines.length > 0 ? lines : [""]).map((line) => ({
       id: uuid(),
       type: "text",
       text: line,
@@ -57,10 +59,10 @@ export class Note {
 
 export class Block {
   id: string;
-  type: string;
+  type: BlockType;
   text: string;
 
-  constructor(type: string = "text", text: string = "") {
+  constructor(type: BlockType = "text", text: string = "") {
     this.id = uuid();
     this.type = type;
     this.text = text;

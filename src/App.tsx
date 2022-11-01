@@ -1,4 +1,3 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import "./App.css";
 import { ColumnView } from "./components/Column";
 import { useNotes } from "./useNotes";

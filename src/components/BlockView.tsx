@@ -3,34 +3,34 @@ import { Block } from "../useNotes";
 
 export function BlockView({
   block,
-  isFocused,
-  setFocus,
   updateBlock,
-  selectionStart = 0,
-  setSelectionStart,
-  onClick,
+  moveIndent,
 }: {
   block: Block;
-  isFocused: boolean;
-  setFocus: () => void;
   updateBlock: (update: Partial<Block>) => void;
-  selectionStart: number;
-  setSelectionStart: (selectionStart: number) => void;
-  onClick: (e: React.MouseEvent) => void;
+  moveIndent: (shift: -1 | 1) => void;
 }) {
   const fontSize = 16;
   const editableDiv = useRef<HTMLDivElement>(null);
 
   const [innerText, setInnerText] = useState("");
 
-  useEffect(() => {
-    if (isFocused) {
-      const el = editableDiv.current;
-      if (!el) return;
-      el.focus();
-      updateSelection();
+  const [touchstart, setTouchstart] = useState<number | null>(0);
+
+  function startTouchHandler(e: React.TouchEvent) {
+    setTouchstart(e.changedTouches[0].screenX);
+  }
+
+  function endTouchHandler(e: React.TouchEvent) {
+    if (touchstart === null) return;
+    const deltaX = e.changedTouches[0].screenX - touchstart;
+    if (deltaX > 50) {
+      moveIndent(1);
+    } else if (deltaX < -50) {
+      moveIndent(-1);
     }
-  }, [isFocused]);
+    setTouchstart(null);
+  }
 
   useEffect(() => {
     if (block.text !== innerText) {
@@ -41,48 +41,6 @@ export function BlockView({
     }
   }, [block.text, innerText]);
 
-  useEffect(() => {
-    updateSelection();
-  }, [editableDiv.current?.childNodes]);
-
-  function updateSelection() {
-    let pos = 0;
-    if (selectionStart < 0) {
-      pos = Math.max(0, block.text.length + selectionStart + 1);
-    } else {
-      pos = Math.min(block.text.length, selectionStart);
-    }
-    if (!pos) return;
-    const el = editableDiv.current;
-    if (!el) return;
-    const range = document.createRange();
-    const sel = window.getSelection();
-    const textNode = el.childNodes[0];
-    if (!textNode) return;
-    range.setStart(textNode, pos);
-    range.collapse(true);
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    setSelectionStart(pos);
-  }
-
-  function keyDownHandler(e: React.KeyboardEvent) {
-    const sel = window.getSelection();
-    const hasSelection = sel?.anchorOffset !== sel?.focusOffset;
-    if (selectionStart === 0 && hasSelection) {
-      if (e.key === "Backspace") {
-        e.stopPropagation();
-      }
-    }
-  }
-
-  function keyUpHandler(e: React.KeyboardEvent) {
-    const pos = document.getSelection()?.anchorOffset || 0;
-    if (isFocused) {
-      setSelectionStart(pos);
-    }
-  }
-
   return (
     <div
       style={{
@@ -90,7 +48,10 @@ export function BlockView({
         flexDirection: "row",
         alignItems: "flex-start",
         margin: "10px",
+        width: "100%",
       }}
+      onTouchStart={startTouchHandler}
+      onTouchEnd={endTouchHandler}
     >
       <div
         style={{
@@ -98,7 +59,6 @@ export function BlockView({
           width: "100%",
         }}
         className="block"
-        onClick={onClick}
         data-block-id={block.id}
       >
         <div
@@ -117,12 +77,6 @@ export function BlockView({
           onInput={(e) => {
             setInnerText(e.currentTarget.innerText);
             updateBlock({ text: e.currentTarget.innerText });
-          }}
-          onKeyDown={keyDownHandler}
-          onKeyUp={keyUpHandler}
-          onFocus={() => {
-            setFocus();
-            updateSelection();
           }}
         />
       </div>

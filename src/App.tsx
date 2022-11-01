@@ -1,16 +1,22 @@
 import "./App.css";
 import { ColumnView } from "./components/Column";
-import { useNotes } from "./useNotes";
+import { useNotes, Block } from "./useNotes";
 
 function App() {
   const notes = useNotes([
     {
-      title: "Note 1",
-      lines: ["This is a note", "It has two lines"],
+      // title: "Note 1",
+      lines: ["This is a note", "It has two lines"].map((text) => ({
+        indent: 0,
+        block: new Block({ text }),
+      })),
     },
     {
       title: "Note 2",
-      lines: ["This is another note", "It also has two lines"],
+      lines: ["This is another note", "It also has two lines"].map((text) => ({
+        indent: 0,
+        block: new Block({ text }),
+      })),
     },
   ]);
 

@@ -31,7 +31,7 @@ export type BlockRecord = {
 export type NoteRecord = {
   id: string;
   title: string | null;
-  blocks: string[];
+  lines: { id: string; indent: number }[];
   createdAt: number;
   updatedAt: number;
 };
@@ -39,21 +39,16 @@ export type NoteRecord = {
 export class Note {
   id: string;
   title: string | null;
-  blocks: Block[];
+  lines: { block: Block; indent: number }[];
   createdAt: number;
   updatedAt: number;
 
-  constructor(title: string | null = null, lines: string[] = []) {
-    const blocks: Block[] = (lines.length > 0 ? lines : [""]).map((line) => ({
-      id: uuid(),
-      type: "text",
-      text: line,
-    }));
-    this.id = uuid();
-    this.title = title;
-    this.blocks = blocks;
-    this.createdAt = Date.now();
-    this.updatedAt = Date.now();
+  constructor(note: Partial<Note> = {}) {
+    this.id = note.id || uuid();
+    this.title = note.title || null;
+    this.lines = note.lines || [];
+    this.createdAt = note.createdAt || Date.now();
+    this.updatedAt = note.updatedAt || Date.now();
   }
 }
 
@@ -62,10 +57,10 @@ export class Block {
   type: BlockType;
   text: string;
 
-  constructor(type: BlockType = "text", text: string = "") {
+  constructor(block: Partial<Block> = {}) {
     this.id = uuid();
-    this.type = type;
-    this.text = text;
+    this.type = block.type || "text";
+    this.text = block.text || "";
   }
 }
 
@@ -93,7 +88,7 @@ export class Notes {
     return Object.values(this.notes).map((note) => {
       return {
         ...note,
-        blocks: note.blocks.map((blockId) => this.blocks[blockId]),
+        lines: note.lines.map((line) => ({ ...line, block: this.blocks[line.id] })),
       };
     });
   };
@@ -103,25 +98,20 @@ export class Notes {
     return this.getNote(this.blockToNote[id]);
   };
 
-  addNote = (
-    partialNote: Partial<Note> & { lines: string[] } = {
-      title: null,
-      lines: [],
-    }
-  ) => {
-    const note = new Note(partialNote.title, partialNote.lines);
+  addNote = (props: Partial<Note>) => {
+    const note = new Note(props);
     this.setNotes((ns) => ({
       ...ns,
-      [note.id]: { ...note, blocks: note.blocks.map((b) => b.id) },
+      [note.id]: { ...note, lines: note.lines.map((line) => ({ ...line, id: line.block.id })) },
     }));
     this.setBlocks((blocks) => {
       const newBlocks: BlocksMap = { ...blocks };
-      note.blocks.forEach((block) => {
+      note.lines.forEach(({ block }) => {
         newBlocks[block.id] = block;
       });
       return newBlocks;
     });
-    note.blocks.forEach((block) => {
+    note.lines.forEach(({ block }) => {
       this.setBlockToNote((blockToNote) => ({
         ...blockToNote,
         [block.id]: note.id,
@@ -129,21 +119,27 @@ export class Notes {
     });
   };
 
-  updateNote = (note: Note) => {
+  updateNote = (
+    noteId: string,
+    update: Partial<NoteRecord> | ((note: NoteRecord) => NoteRecord)
+  ) => {
+    const updateFunc =
+      typeof update === "function" ? update : (note: NoteRecord) => ({ ...note, ...update });
     this.setNotes((ns) => ({
       ...ns,
-      [note.id]: { ...note, blocks: note.blocks.map((b) => b.id) },
+      [noteId]: updateFunc(ns[noteId]),
     }));
   };
 
-  insertBlock = (noteId: string, block: Block, index: number) => {
+  insertLine = (noteId: string, index: number, line: { indent?: number; block: Block }) => {
+    const { indent, block } = { ...line, indent: line.indent || 0 };
     this.setNotes((notes) => {
       const note = notes[noteId];
-      const newBlocks = [...note.blocks];
-      newBlocks.splice(index, 0, block.id);
+      const newLines = [...note.lines];
+      newLines.splice(index, 0, { indent, id: block.id });
       return {
         ...notes,
-        [noteId]: { ...note, blocks: newBlocks },
+        [noteId]: { ...note, lines: newLines },
       };
     });
     this.setBlocks((blocks) => ({
@@ -173,7 +169,7 @@ export class Notes {
     const textBefore = block.text.slice(0, index);
     const textAfter = block.text.slice(index);
     this.updateBlock(blockId, { text: textBefore });
-    const newBlock = new Block(block.type, textAfter);
+    const newBlock = new Block({ type: block.type, text: textAfter });
     this.insertBlockBelow(block.id, newBlock);
     return newBlock.id;
   };
@@ -181,11 +177,11 @@ export class Notes {
   mergeBlockWithPrevious = (blockId: string) => {
     const block = this.getBlock(blockId);
     const note = this.getNoteForBlock(blockId);
-    const blockIndex = note.blocks.indexOf(blockId);
+    const blockIndex = note.lines.findIndex((line) => line.id === blockId);
     if (blockIndex === 0) {
       return;
     }
-    const prevBlock = this.getBlock(note.blocks[blockIndex - 1]);
+    const prevBlock = this.getBlock(note.lines[blockIndex - 1].id);
     this.updateBlock(prevBlock.id, { text: prevBlock.text + block.text });
     this.deleteBlock(block.id);
     return prevBlock.id;
@@ -194,10 +190,10 @@ export class Notes {
   deleteBlock = (blockId: string) => {
     const note = this.getNoteForBlock(blockId);
     this.setNotes((notes) => {
-      const newBlocks = note.blocks.filter((b) => b !== blockId);
+      const newBlocks = note.lines.filter(({ id }) => id !== blockId);
       return {
         ...notes,
-        [note.id]: { ...note, blocks: newBlocks },
+        [note.id]: { ...note, lines: newBlocks },
       };
     });
     this.setBlocks((blocks) => {
@@ -215,19 +211,22 @@ export class Notes {
   insertBlockAbove = (blockId: string, blockInsert: Block | null = null) => {
     const note = this.getNoteForBlock(blockId);
     const block = blockInsert || new Block();
-    const index = note.blocks.indexOf(blockId);
-    this.insertBlock(note.id, block, index);
+    const index = note.lines.findIndex((line) => line.id === blockId);
+    this.insertLine(note.id, index, { block });
   };
 
   insertBlockBelow = (blockId: string, blockInsert: Block | null = null) => {
     const note = this.getNoteForBlock(blockId);
+    const lineAboveIndex = note.lines.findIndex((line) => line.id === blockId);
     const block = blockInsert || new Block();
-    const index = note.blocks.indexOf(blockId) + 1;
-    this.insertBlock(note.id, block, index);
+    this.insertLine(note.id, lineAboveIndex + 1, {
+      indent: note.lines[lineAboveIndex].indent,
+      block,
+    });
   };
 }
 
-export function useNotes(state: { title: string; lines: string[] }[] = []): Notes {
+export function useNotes(state: Partial<Note>[] = []): Notes {
   const [blocksMap, setBlocksMap] = useState<BlocksMap>({});
   const [notesMap, setNotesMap] = useState<NotesMap>({});
   const [blockToNote, setBlockToNote] = useState<BlockToNote>({});
@@ -236,13 +235,13 @@ export function useNotes(state: { title: string; lines: string[] }[] = []): Note
     const notes: NotesMap = {};
     const blocks: BlocksMap = {};
     const blockToNote: BlockToNote = {};
-    state.forEach(({ title, lines }) => {
-      const note = new Note(title, lines);
+    state.forEach((partialNote) => {
+      const note = new Note(partialNote);
       notes[note.id] = {
         ...note,
-        blocks: note.blocks.map((block) => block.id),
+        lines: note.lines.map((line) => ({ ...line, id: line.block.id })),
       };
-      note.blocks.forEach((block) => {
+      note.lines.forEach(({ block }) => {
         blocks[block.id] = block;
         blockToNote[block.id] = note.id;
       });

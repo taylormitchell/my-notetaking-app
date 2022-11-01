@@ -1,13 +1,16 @@
+type BlockId = string;
+type NoteId = string;
+
 export type Block = {
-  id: string;
+  id: BlockId;
   type: string;
   text: string;
 };
 
 export type Note = {
-  id: string;
+  id: NoteId;
   title: string | null;
-  blocks: string[];
+  blocks: { id: BlockId; indent: number }[];
   createdAt: number;
   updatedAt: number;
 };

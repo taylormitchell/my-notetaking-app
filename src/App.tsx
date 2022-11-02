@@ -1,6 +1,8 @@
+import { useState } from "react";
 import "./App.css";
 import { ColumnView } from "./components/Column";
-import { useNotes, Block } from "./useNotes";
+import Entry from "./components/Entry";
+import { useNotes, Block, Note } from "./useNotes";
 
 function App() {
   const notes = useNotes([
@@ -22,14 +24,21 @@ function App() {
 
   const noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
 
+  function addNote(note: Note) {
+    notes.addNote(note);
+  }
+
   return (
     <div
       className="App"
       style={{
+        display: "flex",
+        flexDirection: "column",
         height: "100%",
       }}
     >
       <ColumnView notesDb={notes} notesList={noteList} />
+      <Entry addNote={addNote} />
     </div>
   );
 }

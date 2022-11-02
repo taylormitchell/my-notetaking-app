@@ -102,7 +102,7 @@ export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
     <div
       style={{
         display: "flex",
-        minHeight: "50px",
+        minHeight: "fit-content",
         backgroundColor: "#F5F5F5",
         color: "black",
         borderRadius: "10px",

@@ -33,8 +33,6 @@ export function ColumnView(props: { notesDb: Notes; notesList: Note[] }) {
             <NoteView key={note.id} note={note} notesDb={notesDb} />
           ))}
       </div>
-
-      <button onClick={() => notesDb.addNote()}>Add Note</button>
     </div>
   );
 }

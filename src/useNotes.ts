@@ -74,6 +74,12 @@ export class Notes {
     private setBlockToNote: React.Dispatch<React.SetStateAction<BlockToNote>>
   ) {}
 
+  clear() {
+    this.setNotes({});
+    this.setBlocks({});
+    this.setBlockToNote({});
+  }
+
   /**Get a note by id */
   getNote = (id: string) => {
     return this.notes[id];

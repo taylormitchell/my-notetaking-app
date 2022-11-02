@@ -4,6 +4,7 @@ import { NoteView } from "./NoteView";
 
 function Entry({ addNote }: { addNote: (note: Note) => void }) {
   const [refocus, setRefocus] = useState(false);
+  const [focus, setFocus] = useState(false);
   const entryNotes = useNotes([new Note()]);
   const [note] = entryNotes.getAll();
 
@@ -21,7 +22,6 @@ function Entry({ addNote }: { addNote: (note: Note) => void }) {
   // Refocus after clearing the entry
   const entryRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    console.log("here");
     if (!refocus) return;
     if (!entryRef.current) return;
     const el = entryRef.current.querySelector(".block-text");
@@ -47,6 +47,8 @@ function Entry({ addNote }: { addNote: (note: Note) => void }) {
           submitNote();
         }
       }}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
     >
       <div ref={entryRef} className="Entry__input" style={{ width: "100%" }}>
         <NoteView notesDb={entryNotes} note={note} />
@@ -57,7 +59,7 @@ function Entry({ addNote }: { addNote: (note: Note) => void }) {
           height: "30px",
           borderRadius: "50%",
           color: "white",
-          backgroundColor: "blue",
+          backgroundColor: focus ? "blue" : "lightgray",
           border: "none",
         }}
         onClick={submitNote}

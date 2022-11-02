@@ -102,8 +102,8 @@ export function BlockView({
         alignItems: "flex-start",
         width: "100%",
       }}
-      onTouchStart={startTouchHandler}
-      onTouchEnd={endTouchHandler}
+      // onTouchStart={startTouchHandler}
+      // onTouchEnd={endTouchHandler}
       onKeyDown={keyDownHandler}
     >
       <div

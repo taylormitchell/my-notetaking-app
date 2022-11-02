@@ -1,21 +1,30 @@
-import React, { useState, useRef, ReactNode, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Block } from "../useNotes";
 
 export function BlockView({
   block,
   updateBlock,
   moveIndent,
+  indent,
+  mergeWithPrevious,
+  split,
 }: {
   block: Block;
   updateBlock: (update: Partial<Block>) => void;
   moveIndent: (shift: -1 | 1) => void;
+  indent: number;
+  mergeWithPrevious: () => void;
+  split: (index: number) => void;
 }) {
   const fontSize = 16;
   const editableDiv = useRef<HTMLDivElement>(null);
-
   const [innerText, setInnerText] = useState("");
-
   const [touchstart, setTouchstart] = useState<number | null>(0);
+
+  function getCursorPosition(): null | number {
+    const sel = document.getSelection();
+    return sel?.anchorOffset || null;
+  }
 
   function startTouchHandler(e: React.TouchEvent) {
     setTouchstart(e.changedTouches[0].screenX);
@@ -32,6 +41,41 @@ export function BlockView({
     setTouchstart(null);
   }
 
+  function keyDownHandler(e: React.KeyboardEvent) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      moveIndent(e.shiftKey ? -1 : 1);
+    } else if (e.key === " " && getCursorPosition() === 1) {
+      if (block.text.match(/^\s.*$/)) {
+        // The user added two spaces at the start of the line
+        e.preventDefault();
+        updateBlock({ text: block.text.replace(/^\s+/, "") });
+        moveIndent(1);
+      } else if (block.text.match(/^-.*$/)) {
+        // The user started a bullet point
+        e.preventDefault();
+        updateBlock({ text: block.text.replace(/^-\s*/, "") });
+        moveIndent(1);
+      }
+    } else if (e.key === "Backspace") {
+      const sel = document.getSelection();
+      if (!sel) return;
+      if (sel.anchorOffset > 0) return;
+      e.preventDefault();
+      if (indent > 0) {
+        moveIndent(-1);
+      } else {
+        mergeWithPrevious();
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const sel = document.getSelection();
+      if (!sel) return;
+      split(sel.anchorOffset);
+    }
+  }
+
+  // updates the view when the model changes
   useEffect(() => {
     if (block.text !== innerText) {
       setInnerText(block.text);
@@ -41,17 +85,26 @@ export function BlockView({
     }
   }, [block.text, innerText]);
 
+  // updates the model when the view changes
+  function inputHandler(e: React.FormEvent<HTMLDivElement>) {
+    const newInnerText = e.currentTarget.innerText;
+    if (newInnerText !== innerText) {
+      setInnerText(newInnerText);
+      updateBlock({ text: newInnerText });
+    }
+  }
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "row",
         alignItems: "flex-start",
-        margin: "10px",
         width: "100%",
       }}
       onTouchStart={startTouchHandler}
       onTouchEnd={endTouchHandler}
+      onKeyDown={keyDownHandler}
     >
       <div
         style={{
@@ -74,10 +127,7 @@ export function BlockView({
           }}
           contentEditable
           className="block-text"
-          onInput={(e) => {
-            setInnerText(e.currentTarget.innerText);
-            updateBlock({ text: e.currentTarget.innerText });
-          }}
+          onInput={inputHandler}
         />
       </div>
     </div>

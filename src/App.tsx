@@ -12,7 +12,7 @@ function App() {
       })),
     },
     {
-      title: "Note 2",
+      // title: "Note 2",
       lines: ["This is another note", "It also has two lines"].map((text) => ({
         indent: 0,
         block: new Block({ text }),

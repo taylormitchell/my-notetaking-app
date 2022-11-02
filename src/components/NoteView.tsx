@@ -36,20 +36,9 @@ function BlockPrefix({ indent }: { indent: number }) {
 }
 
 export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
-  const [toFocus, setToFocus] = useState<string | null>(null);
-
-  function getSelectedBlock() {
-    const sel = document.getSelection();
-    if (!sel) return;
-    const selectionStart = sel?.anchorOffset || 0;
-    const selectedNode = sel?.focusNode;
-    if (!selectedNode) return;
-    const blockElement = selectedNode.parentElement?.closest(".block");
-    if (!(blockElement instanceof HTMLElement)) return;
-    const blockId = blockElement.dataset.blockId;
-    if (!blockId) return;
-    return { blockId, selectionStart };
-  }
+  const [toSelect, setToSelect] = useState<{ blockId: string; start: number; end: number } | null>(
+    null
+  );
 
   const moveIndent = (blockId: string, shift: -1 | 1) => {
     notesDb.updateNote(note.id, (note) => ({
@@ -64,59 +53,85 @@ export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
     }));
   };
 
-  const keyDownHandler = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const sel = getSelectedBlock();
-      if (!sel) return;
-      const newBlockId = notesDb.splitBlock(sel.blockId, sel.selectionStart);
-      setToFocus(newBlockId);
-    } else if (e.key === "Backspace") {
-      const sel = getSelectedBlock();
-      if (!sel) return;
-      if (sel.selectionStart === 0) {
-        const prevBlockId = notesDb.mergeBlockWithPrevious(sel.blockId);
-        if (!prevBlockId) return;
-        e.preventDefault();
-        setToFocus(prevBlockId);
-      }
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      const sel = getSelectedBlock();
-      if (!sel) return;
-      moveIndent(sel.blockId, e.shiftKey ? -1 : 1);
-    }
-  };
+  function splitBlock(blockId: string, index: number) {
+    const block = notesDb.getBlock(blockId);
+    const textBefore = block.text.slice(0, index);
+    const textAfter = block.text.slice(index);
+    notesDb.updateBlock(blockId, { text: textBefore });
+    const newBlock = new Block({ type: block.type, text: textAfter });
+    notesDb.insertBlockBelow(block.id, newBlock);
+    setToSelect({ blockId: newBlock.id, start: 0, end: 0 });
+  }
 
+  function mergeBlockWithPrevious(blockId: string) {
+    const note = notesDb.getNoteForBlock(blockId);
+    const prevBlock = notesDb.getBlockAbove(note.id, blockId);
+    if (!prevBlock) return;
+    const block = notesDb.getBlock(blockId);
+    notesDb.updateBlock(prevBlock.id, { text: prevBlock.text + block.text });
+    notesDb.deleteBlock(block.id);
+    setToSelect({
+      blockId: prevBlock.id,
+      start: prevBlock.text.length,
+      end: prevBlock.text.length,
+    });
+  }
+
+  // Update selection
   useEffect(() => {
-    if (toFocus) {
-      const el = document.querySelector(`.block[data-block-id="${toFocus}"] .block-text`);
-      if (el instanceof HTMLElement) {
-        el.focus();
-      }
-      setToFocus(null);
+    if (!toSelect) return;
+    const { blockId, start, end } = toSelect;
+    const el = document.querySelector(`.block[data-block-id="${blockId}"] .block-text`);
+    if (!(el instanceof HTMLElement)) return;
+    const textNode = el.childNodes[0];
+    if (!textNode) {
+      el.focus();
+    } else {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      range.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      setToSelect(null);
     }
-  }, [toFocus, setToFocus]);
+  }, [toSelect, setToSelect]);
 
   return (
     <div
       style={{
-        border: "1px solid black",
         minHeight: "50px",
+        // imessage blue
+        // backgroundColor: "#1982FC",
+        backgroundColor: "#F5F5F5",
+        color: "black",
+        borderRadius: "10px",
+        boxShadow: "0px 0px 2px rgba(0,0,0,0.2)",
+        padding: "5px 20px 10px 20px",
+        margin: "10px",
       }}
-      onKeyDown={keyDownHandler}
     >
-      <h1>{note.title}</h1>
-      {note.lines.map(({ block, indent }) => (
-        <div key={block.id} style={{ display: "flex", flexDirection: "row" }}>
-          <BlockPrefix indent={indent} />
-          <BlockView
-            block={block}
-            updateBlock={(update: Partial<Block>) => notesDb.updateBlock(block.id, update)}
-            moveIndent={(shift: -1 | 1) => moveIndent(block.id, shift)}
-          />
-        </div>
-      ))}
+      {note.title ? <h1>{note.title}</h1> : null}
+      <main
+        style={{
+          paddingTop: "3px",
+        }}
+      >
+        {note.lines.map(({ block, indent }) => (
+          <div key={block.id} style={{ display: "flex", flexDirection: "row", margin: "3px 5px" }}>
+            <BlockPrefix indent={indent} />
+            <BlockView
+              block={block}
+              updateBlock={(update: Partial<Block>) => notesDb.updateBlock(block.id, update)}
+              moveIndent={(shift: -1 | 1) => moveIndent(block.id, shift)}
+              indent={indent}
+              mergeWithPrevious={() => mergeBlockWithPrevious(block.id)}
+              split={(index: number) => splitBlock(block.id, index)}
+            />
+          </div>
+        ))}
+      </main>
     </div>
   );
 }

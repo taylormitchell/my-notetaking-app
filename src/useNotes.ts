@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 function uuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
+      v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -164,29 +164,6 @@ export class Notes {
     }));
   };
 
-  splitBlock = (blockId: string, index: number) => {
-    const block = this.getBlock(blockId);
-    const textBefore = block.text.slice(0, index);
-    const textAfter = block.text.slice(index);
-    this.updateBlock(blockId, { text: textBefore });
-    const newBlock = new Block({ type: block.type, text: textAfter });
-    this.insertBlockBelow(block.id, newBlock);
-    return newBlock.id;
-  };
-
-  mergeBlockWithPrevious = (blockId: string) => {
-    const block = this.getBlock(blockId);
-    const note = this.getNoteForBlock(blockId);
-    const blockIndex = note.lines.findIndex((line) => line.id === blockId);
-    if (blockIndex === 0) {
-      return;
-    }
-    const prevBlock = this.getBlock(note.lines[blockIndex - 1].id);
-    this.updateBlock(prevBlock.id, { text: prevBlock.text + block.text });
-    this.deleteBlock(block.id);
-    return prevBlock.id;
-  };
-
   deleteBlock = (blockId: string) => {
     const note = this.getNoteForBlock(blockId);
     this.setNotes((notes) => {
@@ -206,6 +183,24 @@ export class Notes {
       delete newBlockToNote[blockId];
       return newBlockToNote;
     });
+  };
+
+  getBlockAbove = (noteId: string, blockId: string) => {
+    const note = this.getNote(noteId);
+    const blockIndex = note.lines.findIndex((line) => line.id === blockId);
+    if (blockIndex === 0) {
+      return null;
+    }
+    return this.getBlock(note.lines[blockIndex - 1].id);
+  };
+
+  getBlockBelow = (noteId: string, blockId: string) => {
+    const note = this.getNote(noteId);
+    const blockIndex = note.lines.findIndex((line) => line.id === blockId);
+    if (blockIndex === note.lines.length - 1) {
+      return null;
+    }
+    return this.getBlock(note.lines[blockIndex + 1].id);
   };
 
   insertBlockAbove = (blockId: string, blockInsert: Block | null = null) => {

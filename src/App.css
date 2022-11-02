@@ -1,3 +1,16 @@
+* {
+  box-sizing: border-box;
+}
+
+/* 
+This stops side-to-side bounce on swipe
+see https://stackoverflow.com/questions/32500876/how-to-prevent-white-space-bounce-after-scrolling-to-the-top-of-the-page-and-t 
+*/
+html {
+  overflow: hidden;
+  width: 100%;
+}
+
 .App {
   text-align: center;
 }

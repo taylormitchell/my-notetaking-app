@@ -46,7 +46,7 @@ export class Note {
   constructor(note: Partial<Note> = {}) {
     this.id = note.id || uuid();
     this.title = note.title || null;
-    this.lines = note.lines || [];
+    this.lines = note.lines || [{ block: new Block(), indent: 0 }];
     this.createdAt = note.createdAt || Date.now();
     this.updatedAt = note.updatedAt || Date.now();
   }
@@ -98,7 +98,7 @@ export class Notes {
     return this.getNote(this.blockToNote[id]);
   };
 
-  addNote = (props: Partial<Note>) => {
+  addNote = (props: Partial<Note> = {}) => {
     const note = new Note(props);
     this.setNotes((ns) => ({
       ...ns,

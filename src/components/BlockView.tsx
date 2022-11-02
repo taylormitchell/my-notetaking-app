@@ -124,6 +124,8 @@ export function BlockView({
             cursor: "text",
             border: "none",
             outline: "none",
+            width: "100%",
+            height: "100%",
           }}
           contentEditable
           className="block-text"

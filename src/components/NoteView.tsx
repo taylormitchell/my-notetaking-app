@@ -101,9 +101,8 @@ export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
   return (
     <div
       style={{
+        display: "flex",
         minHeight: "50px",
-        // imessage blue
-        // backgroundColor: "#1982FC",
         backgroundColor: "#F5F5F5",
         color: "black",
         borderRadius: "10px",
@@ -116,6 +115,7 @@ export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
       <main
         style={{
           paddingTop: "3px",
+          width: "100%",
         }}
       >
         {note.lines.map(({ block, indent }) => (

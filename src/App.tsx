@@ -23,7 +23,12 @@ function App() {
   const noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
 
   return (
-    <div className="App">
+    <div
+      className="App"
+      style={{
+        height: "100%",
+      }}
+    >
       <ColumnView notesDb={notes} notesList={noteList} />
     </div>
   );

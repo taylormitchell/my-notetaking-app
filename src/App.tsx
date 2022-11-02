@@ -1,7 +1,8 @@
-import "./App.css";
 import { ColumnView } from "./components/Column";
 import Entry from "./components/Entry";
 import { useNotes, Block, Note } from "./useNotes";
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 function App() {
   const notes = useNotes([
@@ -20,6 +21,10 @@ function App() {
       })),
     },
   ]);
+  const [labels, setLabels] = useState<{ [key: string]: string }>({
+    "1": "Ideaflow",
+    "2": "My note-taking app",
+  });
 
   const noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
 
@@ -33,7 +38,31 @@ function App() {
         overflow: "hidden",
       }}
     >
-      <ColumnView notesDb={notes} notesList={noteList} />
+      <main style={{ height: "100%", overflow: "hidden" }}>
+        <Router>
+          <Routes>
+            <Route
+              path="/labels"
+              element={
+                <div>
+                  <ul>
+                    {Object.entries(labels).map(([key, value]) => {
+                      return (
+                        <li>
+                          <Link key={key} to={`/?q=${value}`}>
+                            {value}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              }
+            />
+            <Route path="/" element={<ColumnView notesDb={notes} notesList={noteList} />} />
+          </Routes>
+        </Router>
+      </main>
       <Entry addNote={(note: Note) => notes.addNote(note)} />
     </div>
   );

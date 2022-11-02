@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Notes, Note, Block } from "../useNotes";
 import { BlockView } from "./BlockView";
 import { NoteView } from "./NoteView";
+import { Link } from "react-router-dom";
+import url from "url";
 
 export function ColumnView(props: { notesDb: Notes; notesList: Note[] }) {
   const { notesDb, notesList } = props;
+  const query = url.parse(document.URL, true).query.q;
 
   // Scroll to bottom on new note
   const [count, setCount] = useState(0);
@@ -29,6 +32,18 @@ export function ColumnView(props: { notesDb: Notes; notesList: Note[] }) {
         overflow: "hidden",
       }}
     >
+      <header
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "lightgrey",
+        }}
+      >
+        <Link to="/labels">←</Link>
+        <h1>{query}</h1>
+      </header>
       <div
         ref={notesWrapper}
         className="notes"

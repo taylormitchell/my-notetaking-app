@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Note, Block, Notes } from "../useNotes";
+import { BlockItem, Note, Upsert } from "../model/useNotes";
 import { BlockView } from "./BlockView";
 
 function BlockPrefix({ indent }: { indent: number }) {
@@ -35,46 +35,25 @@ function BlockPrefix({ indent }: { indent: number }) {
   );
 }
 
-export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
+export function NoteView({ note }: { note: Note }) {
   const [toSelect, setToSelect] = useState<{ blockId: string; start: number; end: number } | null>(
     null
   );
 
-  const moveIndent = (blockId: string, shift: -1 | 1) => {
-    notesDb.updateNote(note.id, (note) => ({
-      ...note,
-      lines: note.lines.map((line) => {
-        if (line.id === blockId) {
-          return { ...line, indent: line.indent + shift };
-        } else {
-          return line;
-        }
-      }),
-    }));
-  };
-
-  function splitBlock(blockId: string, index: number) {
-    const block = notesDb.getBlock(blockId);
-    const textBefore = block.text.slice(0, index);
-    const textAfter = block.text.slice(index);
-    notesDb.updateBlock(blockId, { text: textBefore });
-    const newBlock = new Block({ type: block.type, text: textAfter });
-    notesDb.insertBlockBelow(block.id, newBlock);
-    setToSelect({ blockId: newBlock.id, start: 0, end: 0 });
+  function split(index: number, indexChar: number) {
+    const newBlockId = note.split(index, indexChar);
+    setToSelect({ blockId: newBlockId, start: 0, end: 0 });
   }
 
-  function mergeBlockWithPrevious(blockId: string) {
-    const note = notesDb.getNoteForBlock(blockId);
-    const prevBlock = notesDb.getBlockAbove(note.id, blockId);
-    if (!prevBlock) return;
-    const block = notesDb.getBlock(blockId);
-    notesDb.updateBlock(prevBlock.id, { text: prevBlock.text + block.text });
-    notesDb.deleteBlock(block.id);
-    setToSelect({
-      blockId: prevBlock.id,
-      start: prevBlock.text.length,
-      end: prevBlock.text.length,
-    });
+  function mergeWithPrevious(index: number) {
+    const blockPrevious = note.mergeWithPrevious(index);
+    if (blockPrevious) {
+      setToSelect({
+        blockId: blockPrevious.id,
+        start: blockPrevious.text.length,
+        end: blockPrevious.text.length,
+      });
+    }
   }
 
   // Update selection
@@ -118,19 +97,24 @@ export function NoteView({ note, notesDb }: { note: Note; notesDb: Notes }) {
           width: "100%",
         }}
       >
-        {note.lines.map(({ block, indent }) => (
-          <div key={block.id} style={{ display: "flex", flexDirection: "row", margin: "3px 5px" }}>
-            <BlockPrefix indent={indent} />
-            <BlockView
-              block={block}
-              updateBlock={(update: Partial<Block>) => notesDb.updateBlock(block.id, update)}
-              moveIndent={(shift: -1 | 1) => moveIndent(block.id, shift)}
-              indent={indent}
-              mergeWithPrevious={() => mergeBlockWithPrevious(block.id)}
-              split={(index: number) => splitBlock(block.id, index)}
-            />
-          </div>
-        ))}
+        {note.blocks.map(({ indent, block }, index) => {
+          return (
+            <div
+              key={block.id}
+              style={{ display: "flex", flexDirection: "row", margin: "3px 5px" }}
+            >
+              <BlockPrefix indent={indent} />
+              <BlockView
+                block={block}
+                updateBlock={(update: Upsert<BlockItem>) => note.updateBlock(index, update)}
+                moveIndent={(shift: -1 | 1) => note.moveIndent(index, shift)}
+                indent={indent}
+                mergeWithPrevious={() => mergeWithPrevious(index)}
+                split={(indexChar: number) => split(index, indexChar)}
+              />
+            </div>
+          );
+        })}
       </main>
     </div>
   );

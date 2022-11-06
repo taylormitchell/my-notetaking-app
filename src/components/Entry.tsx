@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { Notes, Note, Block, useNotes, NoteRecord } from "../useNotes";
+import { Notes, useNotes, Note } from "../model/useNotes";
 import { NoteView } from "./NoteView";
 
-function Entry({ addNote }: { addNote: (note: Note) => void }) {
+function Entry({ notesDb }: { notesDb: Notes }) {
   const [refocus, setRefocus] = useState(false);
   const [focus, setFocus] = useState(false);
-  const entryNotes = useNotes([new Note()]);
+  const entryNotes = useNotes(false);
   const [note] = entryNotes.getAll();
 
+  useEffect(() => {
+    entryNotes.newNote();
+  }, []);
+
   function submitNote() {
-    addNote({ ...note, createdAt: Date.now(), updatedAt: Date.now() });
+    note.lines.forEach((line) => {
+      notesDb.upsertBlock(entryNotes.getBlock(line.id) || { id: line.id });
+    });
+    notesDb.upsertNote({ ...note, createdAt: Date.now(), updatedAt: Date.now() });
     entryNotes.clear();
-    entryNotes.addNote();
+    entryNotes.newNote();
     if (!entryRef.current) return;
     const elSelected = document.getSelection()?.anchorNode?.parentElement;
     if (elSelected && entryRef.current.contains(elSelected)) {
@@ -51,7 +58,7 @@ function Entry({ addNote }: { addNote: (note: Note) => void }) {
       onBlur={() => setFocus(false)}
     >
       <div ref={entryRef} className="Entry__input" style={{ width: "100%" }}>
-        <NoteView notesDb={entryNotes} note={note} />
+        <NoteView note={new Note(note, entryNotes)} />
       </div>
       <button
         style={{

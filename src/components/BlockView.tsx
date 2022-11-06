@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Block } from "../useNotes";
+import { BlockItem } from "../model/useNotes";
 
 export function BlockView({
   block,
@@ -9,8 +9,8 @@ export function BlockView({
   mergeWithPrevious,
   split,
 }: {
-  block: Block;
-  updateBlock: (update: Partial<Block>) => void;
+  block: BlockItem;
+  updateBlock: (update: Partial<BlockItem>) => void;
   moveIndent: (shift: -1 | 1) => void;
   indent: number;
   mergeWithPrevious: () => void;
@@ -19,26 +19,10 @@ export function BlockView({
   const fontSize = 16;
   const editableDiv = useRef<HTMLDivElement>(null);
   const [innerText, setInnerText] = useState("");
-  const [touchstart, setTouchstart] = useState<number | null>(0);
 
   function getCursorPosition(): null | number {
     const sel = document.getSelection();
     return sel?.anchorOffset || null;
-  }
-
-  function startTouchHandler(e: React.TouchEvent) {
-    setTouchstart(e.changedTouches[0].screenX);
-  }
-
-  function endTouchHandler(e: React.TouchEvent) {
-    if (touchstart === null) return;
-    const deltaX = e.changedTouches[0].screenX - touchstart;
-    if (deltaX > 50) {
-      moveIndent(1);
-    } else if (deltaX < -50) {
-      moveIndent(-1);
-    }
-    setTouchstart(null);
   }
 
   function keyDownHandler(e: React.KeyboardEvent) {
@@ -102,8 +86,6 @@ export function BlockView({
         alignItems: "flex-start",
         width: "100%",
       }}
-      // onTouchStart={startTouchHandler}
-      // onTouchEnd={endTouchHandler}
       onKeyDown={keyDownHandler}
     >
       <div

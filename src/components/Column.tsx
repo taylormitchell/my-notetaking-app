@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Notes, Note, Block } from "../useNotes";
-import { BlockView } from "./BlockView";
+import { Notes, NoteItem, Note } from "../model/useNotes";
 import { NoteView } from "./NoteView";
 import { Link } from "react-router-dom";
 import url from "url";
 
-export function ColumnView(props: { notesDb: Notes; notesList: Note[] }) {
+export function ColumnView(props: { notesDb: Notes; notesList: NoteItem[] }) {
   const { notesDb, notesList } = props;
   const query = url.parse(document.URL, true).query.q;
 
@@ -57,7 +56,7 @@ export function ColumnView(props: { notesDb: Notes; notesList: Note[] }) {
       >
         <div className="filler" style={{ height: "100%" }} />
         {notesList.map((note) => (
-          <NoteView key={note.id} note={note} notesDb={notesDb} />
+          <NoteView key={note.id} note={new Note(note, notesDb)} />
         ))}
       </div>
     </div>

@@ -18,7 +18,7 @@
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/src/client",
       "env": {
         "BROWSER": "none"
       }
@@ -30,7 +30,7 @@
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
-      "cwd": "${workspaceFolder}/srv"
+      "cwd": "${workspaceFolder}/src",
     }
   ],
   "compounds": [

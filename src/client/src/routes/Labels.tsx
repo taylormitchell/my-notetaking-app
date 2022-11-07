@@ -7,10 +7,13 @@ export const Labels = ({ notes }: { notes: Notes }) => {
   return (
     <div>
       <ul>
+        <li key="all">
+          <Link to="/">All</Link>
+        </li>
         {notes.getLabels().map((label) => {
           return (
             <li key={label.id}>
-              <Link to={`/?q=${label.name}`}>{label.name}</Link>
+              <Link to={`/?labels=${label.id}`}>{label.name}</Link>
             </li>
           );
         })}

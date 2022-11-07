@@ -4,7 +4,7 @@ import { useNotes } from "./model/useNotes";
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { Labels } from "./routes/Labels";
-import { AllNotes } from "./routes/AllNotes";
+import { NoteList } from "./routes/NoteList";
 
 function App() {
   const notes = useNotes(true);
@@ -23,7 +23,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/labels" element={<Labels notes={notes} />} />
-            <Route path="/" element={<AllNotes notes={notes} />} />
+            <Route path="/" element={<NoteList notes={notes} />} />
           </Routes>
         </Router>
       </main>

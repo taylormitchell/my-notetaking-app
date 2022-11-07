@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Notes, useNotes, Note } from "../model/useNotes";
+import { getQuery } from "../util";
 import { NoteView } from "./NoteView";
 
 function Entry({ notesDb }: { notesDb: Notes }) {
@@ -8,15 +9,27 @@ function Entry({ notesDb }: { notesDb: Notes }) {
   const entryNotes = useNotes(false);
   const [note] = entryNotes.getAll();
 
+  const query = getQuery();
+
   useEffect(() => {
     entryNotes.newNote();
   }, []);
 
   function submitNote() {
+    // Add blocks and note
     note.lines.forEach((line) => {
       notesDb.upsertBlock(entryNotes.getBlock(line.id) || { id: line.id });
     });
     notesDb.upsertNote({ ...note, createdAt: Date.now(), updatedAt: Date.now() });
+    // Add note to all labels
+    query.labels.forEach((labelId) => {
+      notesDb.upsertLabel((label) => {
+        return {
+          ...label,
+          noteIds: [...label.noteIds, note.id],
+        };
+      }, labelId);
+    });
     entryNotes.clear();
     entryNotes.newNote();
     if (!entryRef.current) return;

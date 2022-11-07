@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Notes, NoteItem, Note } from "../model/useNotes";
+import { Notes, NoteItem, Note, LabelItem } from "../model/useNotes";
 import { NoteView } from "./NoteView";
 import { Link } from "react-router-dom";
 import url from "url";
+import { getQuery } from "../util";
 
 export function ColumnView(props: { notesDb: Notes; notesList: NoteItem[] }) {
   const { notesDb, notesList } = props;
-  const query = url.parse(document.URL, true).query.q;
+  const query = getQuery();
+
+  let labels: LabelItem[] = [];
+  for (const labelId of query.labels || []) {
+    const label = notesDb.getLabel(labelId);
+    if (label) {
+      labels.push(label);
+    }
+  }
 
   // Scroll to bottom on new note
   const [count, setCount] = useState(0);
@@ -41,7 +50,13 @@ export function ColumnView(props: { notesDb: Notes; notesList: NoteItem[] }) {
         }}
       >
         <Link to="/labels">←</Link>
-        <h1>{query}</h1>
+        <h1>
+          <span>
+            {labels.map((label) => (
+              <span key={label.id}>{label.name}</span>
+            ))}
+          </span>
+        </h1>
       </header>
       <div
         ref={notesWrapper}

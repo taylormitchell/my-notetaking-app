@@ -39,13 +39,15 @@ export class LabelItem {
   id: LabelId;
   type: "label";
   name: string;
+  noteIds: NoteId[];
   color: string;
 
   constructor(label: Partial<LabelItem> = {}) {
     this.id = label.id || uuid();
     this.type = "label";
     this.name = label.name || "";
-    this.color = label.color || "#000000";
+    this.noteIds = label.noteIds || [];
+    this.color = label.color || "#007bff";
   }
 }
 
@@ -90,6 +92,13 @@ export class Notes {
 
   getLabels = () => {
     return Object.values(this.items).filter((item) => item.type === "label") as LabelItem[];
+  };
+
+  getLabel = (id: string) => {
+    const item = this.items[id];
+    if (item && item.type === "label") {
+      return item as LabelItem;
+    }
   };
 
   getAll = (): NoteItem[] => {
@@ -266,6 +275,10 @@ export class Note {
   updateBlock(index: number, upsert: Upsert<BlockItem>) {
     this.notes.upsertBlock(upsert, this.noteItem.lines[index].id);
   }
+
+  getLabels = () => {
+    return this.notes.getLabels().filter((label) => label.noteIds.includes(this.noteItem.id));
+  };
 }
 
 export function useNotes(persist = false): Notes {

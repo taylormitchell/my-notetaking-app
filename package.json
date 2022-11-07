@@ -1,12 +1,12 @@
 {
   "name": "my-notetaking-app",
   "version": "1.0.0",
-  "description": "## Todo",
+  "description": "https://notes.taylors.tech",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build:client": "cd client && npm run build",
+    "deploy": "source scripts/deploy.sh",
+    "db:pull": "source scripts/pull-data.sh",
+    "db:push": "source scripts/push-data.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,11 +19,5 @@
   "bugs": {
     "url": "https://github.com/taylormitchell/my-notetaking-app/issues"
   },
-  "homepage": "https://github.com/taylormitchell/my-notetaking-app#readme",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "sqlite3": "^5.1.2"
-  }
+  "homepage": "https://github.com/taylormitchell/my-notetaking-app#readme"
 }

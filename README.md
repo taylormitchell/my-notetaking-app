@@ -1,5 +1,3 @@
 # My note-taking app
 
-## Todo
-
-- [ ] start!
+https://notes.taylors.tech

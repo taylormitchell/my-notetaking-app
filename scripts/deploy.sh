@@ -1,4 +1,3 @@
-create dist.zip
 source ./scripts/create-dist.sh
 zip -r dist.zip dist
 scp dist.zip $DROPLET_USER@$DROPLET_IP:~/dist.zip

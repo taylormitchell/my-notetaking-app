@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BlockItem, Note, Upsert } from "../model/useNotes";
+import { getQuery } from "../util";
 import { BlockView } from "./BlockView";
 
 function BlockPrefix({ indent }: { indent: number }) {
@@ -80,7 +81,6 @@ export function NoteView({ note }: { note: Note }) {
   return (
     <div
       style={{
-        display: "flex",
         minHeight: "fit-content",
         backgroundColor: "#F5F5F5",
         color: "black",
@@ -93,6 +93,8 @@ export function NoteView({ note }: { note: Note }) {
       {note.title ? <h1>{note.title}</h1> : null}
       <main
         style={{
+          display: "flex",
+          flexDirection: "column",
           paddingTop: "3px",
           width: "100%",
         }}

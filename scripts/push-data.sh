@@ -1,0 +1,1 @@
+scp ./src/data/db.sqlite $DROPLET_USER@$DROPLET_IP:~/data/my-notetaking-app/db.sqlite 

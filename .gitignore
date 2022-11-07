@@ -23,3 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .archive
+.env*
+dist
+*.sqlite

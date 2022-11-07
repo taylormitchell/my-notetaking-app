@@ -3,10 +3,16 @@ const sqlite3 = require("sqlite3");
 const path = require("path");
 const fs = require("fs");
 
+// Set up the database
+const dataDir = process.env.DATA_DIR || path.join(__dirname, "../data");
+const dbFile = path.join(dataDir, "db.sqlite");
+console.log(`Using database file ${dbFile}`);
+init();
+
 function init() {
   if (fs.existsSync(dbFile)) return;
   const db = new sqlite3.Database(dbFile);
-  const sql = fs.readFileSync("init.sql", "utf8");
+  const sql = fs.readFileSync(path.join(__dirname, "../data/init.sql"), "utf8");
   db.serialize(() => {
     db.run(sql);
   });
@@ -15,16 +21,12 @@ function init() {
 
 function reset() {
   const db = new sqlite3.Database(dbFile);
-  const sql = fs.readFileSync("reset.sql", "utf8");
+  const sql = fs.readFileSync(path.join(__dirname, "../data/reset.sql"), "utf8");
   db.serialize(() => {
     db.run(sql);
   });
   db.close();
 }
-
-// Set up the database
-const dbFile = process.env.DB_FILE || path.join(__dirname, "db.sqlite");
-init();
 
 const router = express.Router();
 const bodyParser = require("body-parser");

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 
-const apiUrl = process.env.API_URL || "http://localhost:3002";
-
 export type Uuid = string;
 
 export type Item = { id: Uuid; type: string };
@@ -75,7 +73,7 @@ export const useItems = <T extends Item>(
       const dirtyItems: Items<T> = {};
       dirtyItemIds.forEach((key) => (dirtyItems[key] = items[key]));
 
-      const response = await fetch(apiUrl, {
+      const response = await fetch("/api/db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

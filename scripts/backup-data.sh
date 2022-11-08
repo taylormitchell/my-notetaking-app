@@ -1,0 +1,1 @@
+scp $DROPLET_USER@$DROPLET_IP:~/data/my-notetaking-app/db.sqlite ~/Dropbox/data/my-notetaking-app/db.$(date +%s).sqlite

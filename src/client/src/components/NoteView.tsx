@@ -36,7 +36,45 @@ function BlockPrefix({ indent }: { indent: number }) {
   );
 }
 
-export function NoteView({ note }: { note: Note }) {
+export function ActionButton({
+  name,
+  count,
+  size,
+  onClick,
+  children,
+}: {
+  name: string;
+  count: number;
+  size: number;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const [showCount, setShowCount] = useState(false);
+
+  function handleClick() {
+    onClick();
+    setShowCount(true);
+    setTimeout(() => setShowCount(false), 1000);
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <div className={"upvote"} onClick={handleClick}>
+        {children}
+      </div>
+      <div style={{ width: "5px" }}>{count > 0 && <span>{count}</span>}</div>
+    </div>
+  );
+}
+
+export function NoteView({ note, showActions = true }: { note: Note; showActions?: boolean }) {
   const [toSelect, setToSelect] = useState<{ blockId: string; start: number; end: number } | null>(
     null
   );
@@ -118,6 +156,59 @@ export function NoteView({ note }: { note: Note }) {
           );
         })}
       </main>
+      {showActions && (
+        <footer
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            color: "gray",
+          }}
+        >
+          <div className={"upvote"}>
+            <ActionButton
+              name={"upvote"}
+              count={note.upvotes}
+              size={15}
+              onClick={() => note.upvote()}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12.781 2.375c-.381-.475-1.181-.475-1.562 0l-8 10A1.001 1.001 0 0 0 4 14h4v7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-7h4a1.001 1.001 0 0 0 .781-1.625l-8-10zM15 12h-1v8h-4v-8H6.081L12 4.601 17.919 12H15z"
+                  fill="currentColor"
+                />
+              </svg>
+            </ActionButton>
+          </div>
+          {/* <div className={"comment"}>
+          <ActionButton
+            name={"comment"}
+            count={2}
+            size={20}
+            onClick={() => alert(`clicked upvote`)}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12.0867962,18 L6,21.8042476 L6,18 L4,18 C2.8954305,18 2,17.1045695 2,16 L2,4 C2,2.8954305 2.8954305,2 4,2 L20,2 C21.1045695,2 22,2.8954305 22,4 L22,16 C22,17.1045695 21.1045695,18 20,18 L12.0867962,18 Z M8,18.1957524 L11.5132038,16 L20,16 L20,4 L4,4 L4,16 L8,16 L8,18.1957524 Z"
+                fill="currentColor"
+              />
+            </svg>
+          </ActionButton>
+        </div> */}
+        </footer>
+      )}
     </div>
   );
 }

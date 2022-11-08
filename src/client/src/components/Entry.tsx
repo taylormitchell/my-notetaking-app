@@ -71,7 +71,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
       onBlur={() => setFocus(false)}
     >
       <div ref={entryRef} className="Entry__input" style={{ width: "100%" }}>
-        <NoteView note={new Note(note, entryNotes)} />
+        <NoteView note={new Note(note, entryNotes)} showActions={false} />
       </div>
       <button
         style={{

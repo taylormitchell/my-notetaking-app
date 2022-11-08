@@ -1,9 +1,9 @@
-import { useItems, Items, uuid, Uuid, UpdateItem } from "./useItems";
+import { useItems, Items, Item, uuid, Uuid, UpdateItem } from "./useItems";
 
 export type Upsert<T> = Partial<T> | ((item: T) => T);
 
 export type BlockId = Uuid;
-export class BlockItem {
+export class BlockItem implements Item {
   id: BlockId;
   type: "block";
   text: string;
@@ -16,7 +16,7 @@ export class BlockItem {
 }
 
 export type NoteId = Uuid;
-export class NoteItem {
+export class NoteItem implements Item {
   id: NoteId;
   type: "note";
   title: string | null;
@@ -35,7 +35,7 @@ export class NoteItem {
 }
 
 export type LabelId = Uuid;
-export class LabelItem {
+export class LabelItem implements Item {
   id: LabelId;
   type: "label";
   name: string;
@@ -51,20 +51,56 @@ export class LabelItem {
   }
 }
 
+export type AttributeId = Uuid;
+interface Attribute extends Item {
+  id: AttributeId;
+  type: "attribute";
+  name: string;
+  value: any;
+  belongsTo: Uuid;
+}
+
+export type UpvoteId = Uuid;
+export class UpvoteItem implements Attribute {
+  id: UpvoteId;
+  type: "attribute";
+  name: "upvote";
+  value: number;
+  belongsTo: Uuid;
+
+  constructor(upvote: Partial<UpvoteItem> = {}) {
+    this.id = upvote.id || uuid();
+    this.type = "attribute";
+    this.name = "upvote";
+    this.value = upvote.value || 0;
+    this.belongsTo = upvote.belongsTo || "";
+  }
+}
+
+type ItemTypes = BlockItem | NoteItem | LabelItem | UpvoteItem;
+
 export class Notes {
   private blockToNote: { [key: BlockId]: NoteId };
+  private itemToAttributes: { [key: Uuid]: AttributeId[] };
   constructor(
-    public items: Items<BlockItem | NoteItem | LabelItem>,
-    private updateItems: UpdateItem<BlockItem | NoteItem | LabelItem>,
+    public items: Items<ItemTypes>,
+    private updateItems: UpdateItem<ItemTypes>,
     private clearItems: () => void
   ) {
     this.blockToNote = {};
+    this.itemToAttributes = {};
     Object.entries(this.items).forEach(([key, value]) => {
       if (value.type === "note") {
         const note = value as NoteItem;
         note.lines.forEach((line) => {
           this.blockToNote[line.id] = key;
         });
+      } else if (value.type === "attribute") {
+        const attribute = value as Attribute;
+        if (!this.itemToAttributes[attribute.belongsTo]) {
+          this.itemToAttributes[attribute.belongsTo] = [];
+        }
+        this.itemToAttributes[attribute.belongsTo].push(attribute.id);
       }
     });
   }
@@ -72,6 +108,14 @@ export class Notes {
   clear() {
     this.clearItems();
     this.blockToNote = {};
+  }
+
+  getAttributes(item: Item): Attribute[] {
+    const attributes = this.itemToAttributes[item.id];
+    if (!attributes) {
+      return [];
+    }
+    return attributes.map((id) => this.items[id]) as Attribute[];
   }
 
   /**Get a note by id */
@@ -165,10 +209,32 @@ export class Notes {
       return { [newLabel.id]: newLabel };
     });
   };
+
+  upsertUpvote = (upsert: Upsert<UpvoteItem>, upvoteId?: UpvoteId, belongsTo?: Uuid) => {
+    const id = upvoteId || uuid();
+    this.updateItems((items) => {
+      const item = items[id] || new UpvoteItem({ id, belongsTo });
+      if (item.type !== "attribute" || item.name !== "upvote") {
+        throw new Error("Upvote not found");
+      }
+      const upvote = item as UpvoteItem;
+      const newUpvote = typeof upsert === "function" ? upsert(upvote) : { ...upvote, ...upsert };
+      return { [newUpvote.id]: newUpvote };
+    });
+  };
 }
 
 export class Note {
-  constructor(private noteItem: NoteItem, private notes: Notes) {}
+  private attributes: { upvote?: UpvoteItem };
+  constructor(private noteItem: NoteItem, private notes: Notes) {
+    this.attributes = {};
+    const attrs = this.notes.getAttributes(noteItem);
+    for (const attr of attrs) {
+      if (attr.name === "upvote") {
+        this.attributes.upvote = attr as UpvoteItem;
+      }
+    }
+  }
 
   get title() {
     return this.noteItem.title;
@@ -199,6 +265,10 @@ export class Note {
       }
     });
     return blocks;
+  }
+
+  get upvotes() {
+    return this.attributes.upvote?.value || 0;
   }
 
   moveIndent(index: number, shift: -1 | 1) {
@@ -279,9 +349,19 @@ export class Note {
   getLabels = () => {
     return this.notes.getLabels().filter((label) => label.noteIds.includes(this.noteItem.id));
   };
+
+  upvote = () => {
+    this.notes.upsertUpvote((upvote) => {
+      return {
+        ...upvote,
+        value: upvote.value + 1,
+        belongsTo: this.noteItem.id,
+      };
+    }, this.attributes.upvote?.id);
+  };
 }
 
 export function useNotes(persist = false): Notes {
-  const [items, updateItems, clearItems] = useItems<BlockItem | NoteItem | LabelItem>({}, persist);
+  const [items, updateItems, clearItems] = useItems<ItemTypes>({}, persist);
   return new Notes(items, updateItems, clearItems);
 }

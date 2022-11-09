@@ -8,6 +8,7 @@ export function BlockView({
   indent,
   mergeWithPrevious,
   split,
+  editable = false,
 }: {
   block: BlockItem;
   updateBlock: (update: Partial<BlockItem>) => void;
@@ -15,6 +16,7 @@ export function BlockView({
   indent: number;
   mergeWithPrevious: () => void;
   split: (index: number) => void;
+  editable?: boolean;
 }) {
   const fontSize = 16;
   const editableDiv = useRef<HTMLDivElement>(null);
@@ -112,8 +114,9 @@ export function BlockView({
             outline: "none",
             width: "100%",
             height: "100%",
+            overflowWrap: "break-word",
           }}
-          contentEditable
+          contentEditable={editable}
           className="block-text"
           onInput={inputHandler}
         />

@@ -1,10 +1,11 @@
 import { ColumnView } from "../components/Column";
 import { Notes, LabelItem, NoteId } from "../model/useNotes";
-import url from "url";
 import { getQuery } from "../util";
+import { useNavigate } from "react-router-dom";
 
 export const NoteList = ({ notes }: { notes: Notes }) => {
   let noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
+  const navigate = useNavigate();
 
   const query = getQuery();
 
@@ -22,5 +23,5 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
     noteList = noteList.filter((note) => noteIds.has(note.id));
   }
 
-  return <ColumnView notesDb={notes} notesList={noteList} />;
+  return <ColumnView notesDb={notes} notesList={noteList} navigate={navigate} />;
 };

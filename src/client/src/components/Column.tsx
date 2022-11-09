@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Notes, NoteItem, Note, LabelItem } from "../model/useNotes";
 import { NoteView } from "./NoteView";
-import { Link } from "react-router-dom";
-import url from "url";
+import { Link, Navigate } from "react-router-dom";
 import { getQuery } from "../util";
 
-export function ColumnView(props: { notesDb: Notes; notesList: NoteItem[] }) {
+export function ColumnView(props: {
+  notesDb: Notes;
+  notesList: NoteItem[];
+  navigate: (path: string) => void;
+}) {
   const { notesDb, notesList } = props;
   const query = getQuery();
 
@@ -71,7 +74,11 @@ export function ColumnView(props: { notesDb: Notes; notesList: NoteItem[] }) {
       >
         <div className="filler" style={{ height: "100%" }} />
         {notesList.map((note) => (
-          <NoteView key={note.id} note={new Note(note, notesDb)} />
+          <NoteView
+            key={note.id}
+            note={new Note(note, notesDb)}
+            open={() => props.navigate(`/note/${note.id}`)}
+          />
         ))}
       </div>
     </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { BlockItem, Note, Upsert } from "../model/useNotes";
-import { getQuery } from "../util";
 import { BlockView } from "./BlockView";
 
 function BlockPrefix({ indent }: { indent: number }) {
@@ -44,7 +43,7 @@ export function ActionButton({
   children,
 }: {
   name: string;
-  count: number;
+  count?: number;
   size: number;
   onClick: () => void;
   children: React.ReactNode;
@@ -69,12 +68,22 @@ export function ActionButton({
       <div className={"upvote"} onClick={handleClick}>
         {children}
       </div>
-      <div style={{ width: "5px" }}>{count > 0 && <span>{count}</span>}</div>
+      <div style={{ width: "5px" }}>{count && <span>{count}</span>}</div>
     </div>
   );
 }
 
-export function NoteView({ note, showActions = true }: { note: Note; showActions?: boolean }) {
+export function NoteView({
+  note,
+  showActions = true,
+  editable = false,
+  open,
+}: {
+  note: Note;
+  showActions?: boolean;
+  editable?: boolean;
+  open?: () => void;
+}) {
   const [toSelect, setToSelect] = useState<{ blockId: string; start: number; end: number } | null>(
     null
   );
@@ -127,6 +136,7 @@ export function NoteView({ note, showActions = true }: { note: Note; showActions
         padding: "5px 20px 10px 20px",
         margin: "10px",
       }}
+      onClick={open}
     >
       {note.title ? <h1>{note.title}</h1> : null}
       <main
@@ -151,6 +161,7 @@ export function NoteView({ note, showActions = true }: { note: Note; showActions
                 indent={indent}
                 mergeWithPrevious={() => mergeWithPrevious(index)}
                 split={(indexChar: number) => split(index, indexChar)}
+                editable={editable}
               />
             </div>
           );

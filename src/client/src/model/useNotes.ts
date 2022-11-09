@@ -126,6 +126,14 @@ export class Notes {
     }
   };
 
+  getNoteOrThrow = (id: string) => {
+    const note = this.getNote(id);
+    if (!note) {
+      throw new Error(`Note ${id} not found`);
+    }
+    return note;
+  };
+
   /**Get a block by id */
   getBlock = (id: string) => {
     const item = this.items[id];
@@ -158,12 +166,12 @@ export class Notes {
     return this.getNote(this.blockToNote[id]);
   };
 
-  newNote = () => {
+  createNote = (): NoteId => {
     const note = new NoteItem({ lines: [{ id: uuid(), indent: 0 }] });
     note.lines.forEach((line) => {
       this.upsertBlock({ id: line.id });
     });
-    this.upsertNote(note);
+    return this.upsertNote(note, note.id);
   };
 
   upsertBlock = (upsert: Upsert<BlockItem>, blockId?: string) => {

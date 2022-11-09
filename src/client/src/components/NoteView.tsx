@@ -138,7 +138,7 @@ export function NoteView({
       }}
       onClick={open}
     >
-      {note.title ? <h1>{note.title}</h1> : null}
+      {note.title ? <div>{note.title}</div> : null}
       <main
         style={{
           display: "flex",
@@ -172,7 +172,7 @@ export function NoteView({
           style={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
             color: "gray",
           }}
         >
@@ -197,6 +197,7 @@ export function NoteView({
               </svg>
             </ActionButton>
           </div>
+
           {/* <div className={"comment"}>
           <ActionButton
             name={"comment"}

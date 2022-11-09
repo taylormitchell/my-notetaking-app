@@ -12,7 +12,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
   const query = getQuery();
 
   useEffect(() => {
-    entryNotes.newNote();
+    entryNotes.createNote();
   }, []);
 
   function submitNote() {
@@ -31,7 +31,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
       }, labelId);
     });
     entryNotes.clear();
-    entryNotes.newNote();
+    entryNotes.createNote();
     if (!entryRef.current) return;
     const elSelected = document.getSelection()?.anchorNode?.parentElement;
     if (elSelected && entryRef.current.contains(elSelected)) {

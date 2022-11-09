@@ -1,24 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Notes, NoteItem, Note, LabelItem } from "../model/useNotes";
 import { NoteView } from "./NoteView";
-import { Link, Navigate } from "react-router-dom";
-import { getQuery } from "../util";
+import { Link, useNavigate } from "react-router-dom";
 
-export function ColumnView(props: {
+export function ColumnView({
+  notesDb,
+  notesList,
+  editable = true,
+}: {
   notesDb: Notes;
   notesList: NoteItem[];
-  navigate: (path: string) => void;
+  editable?: boolean;
 }) {
-  const { notesDb, notesList } = props;
-  const query = getQuery();
-
-  let labels: LabelItem[] = [];
-  for (const labelId of query.labels || []) {
-    const label = notesDb.getLabel(labelId);
-    if (label) {
-      labels.push(label);
-    }
-  }
+  const navigate = useNavigate();
 
   // Scroll to bottom on new note
   const [count, setCount] = useState(0);
@@ -40,10 +34,10 @@ export function ColumnView(props: {
         flexDirection: "column",
         justifyContent: "flex-end",
         height: "100%",
-        overflow: "hidden",
+        overflow: "scroll",
       }}
     >
-      <header
+      {/* <header
         style={{
           display: "flex",
           flexDirection: "row",
@@ -60,7 +54,7 @@ export function ColumnView(props: {
             ))}
           </span>
         </h1>
-      </header>
+      </header> */}
       <div
         ref={notesWrapper}
         className="notes"
@@ -77,9 +71,11 @@ export function ColumnView(props: {
           <NoteView
             key={note.id}
             note={new Note(note, notesDb)}
-            open={() => props.navigate(`/note/${note.id}`)}
+            open={() => navigate(`/note/${note.id}`)}
+            editable={editable}
           />
         ))}
+        <div className="filler" style={{ height: "50px" }} />
       </div>
     </div>
   );

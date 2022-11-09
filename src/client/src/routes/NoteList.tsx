@@ -1,7 +1,8 @@
 import { ColumnView } from "../components/Column";
 import { Notes, LabelItem, NoteId } from "../model/useNotes";
 import { getQuery } from "../util";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Header } from "../components/Header";
 
 export const NoteList = ({ notes }: { notes: Notes }) => {
   let noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
@@ -23,5 +24,19 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
     noteList = noteList.filter((note) => noteIds.has(note.id));
   }
 
-  return <ColumnView notesDb={notes} notesList={noteList} navigate={navigate} />;
+  return (
+    <div style={{ height: "100%", overflow: "hidden" }}>
+      <Header back={() => navigate("/labels")}>
+        <span>
+          {labels.map((label) => (
+            <span key={label.id}>{label.name}</span>
+          ))}
+        </span>
+      </Header>
+      <main style={{ height: "100%", overflow: "hidden" }}>
+        <ColumnView notesDb={notes} notesList={noteList} />;
+        <footer style={{ height: "100px" }}></footer>
+      </main>
+    </div>
+  );
 };

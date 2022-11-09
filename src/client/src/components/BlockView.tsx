@@ -93,14 +93,14 @@ export function BlockView({
         width: "100%",
       }}
       onKeyDown={keyDownHandler}
+      className="block"
+      data-block-id={block.id}
     >
       <div
         style={{
           textAlign: "left",
           width: "100%",
         }}
-        className="block"
-        data-block-id={block.id}
       >
         <div
           ref={editableDiv}

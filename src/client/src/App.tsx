@@ -22,10 +22,9 @@ function App() {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflow: "hidden",
       }}
     >
-      <main style={{ height: "100%", overflow: "hidden" }}>
+      <main style={{ overflow: "hidden" }}>
         <Routes>
           <Route path="/labels" element={<Labels notes={notes} />} />
           <Route path="/" element={<NoteList notes={notes} />} />

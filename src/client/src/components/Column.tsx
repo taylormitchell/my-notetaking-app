@@ -66,7 +66,7 @@ export function ColumnView({
           padding: "10px",
         }}
       >
-        <div className="filler" style={{ height: "100%" }} />
+        {/* <div className="filler" style={{ height: "100%" }} /> */}
         {notesList.map((note) => (
           <NoteView
             key={note.id}
@@ -75,7 +75,7 @@ export function ColumnView({
             editable={editable}
           />
         ))}
-        <div className="filler" style={{ height: "50px" }} />
+        <div className="filler" style={{ minHeight: "50px" }} />
       </div>
     </div>
   );

@@ -76,11 +76,13 @@ export function ActionButton({
 export function NoteView({
   note,
   showActions = true,
+  addChild,
   editable = false,
   onClick,
 }: {
   note: Note;
   showActions?: boolean;
+  addChild?: () => void;
   editable?: boolean;
   onClick?: () => void;
 }) {
@@ -137,6 +139,8 @@ export function NoteView({
         margin: "10px",
       }}
       onClick={onClick}
+      className={"note"}
+      data-note-id={note.id}
     >
       {note.title ? <div>{note.title}</div> : null}
       <main
@@ -176,6 +180,7 @@ export function NoteView({
             color: "gray",
           }}
         >
+          <div className={"addChild"}>{addChild && <button onClick={addChild}>+</button>}</div>
           <div className={"upvote"}>
             <ActionButton
               name={"upvote"}

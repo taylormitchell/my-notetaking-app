@@ -1,5 +1,6 @@
 import { ColumnView } from "../components/Column";
-import { Notes, LabelItem, NoteId } from "../model/useNotes";
+import { Notes, LabelItem, NoteId, Note } from "../model/useNotes";
+import { NoteView } from "../components/NoteView";
 import { getQuery } from "../util";
 import { useNavigate, Link } from "react-router-dom";
 import { Header } from "../components/Header";
@@ -34,8 +35,19 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
         </span>
       </Header>
       <main style={{ height: "100%", overflow: "hidden" }}>
-        <ColumnView notesDb={notes} notesList={noteList} />;
-        <footer style={{ height: "100px" }}></footer>
+        <ColumnView
+          notesDb={notes}
+          notesList={noteList}
+          noteView={(note) => (
+            <NoteView
+              key={note.id}
+              note={new Note(note, notes)}
+              onClick={() => navigate(`/note/${note.id}`)}
+              editable={false}
+            />
+          )}
+        />
+        ;<footer style={{ height: "100px" }}></footer>
       </main>
     </div>
   );

@@ -77,7 +77,35 @@ export class UpvoteItem implements Attribute {
   }
 }
 
-type ItemTypes = BlockItem | NoteItem | LabelItem | UpvoteItem;
+export type RelationId = Uuid;
+interface Relation extends Item {
+  id: RelationId;
+  type: "relation";
+  name: string;
+  nameReverse?: string;
+  from: Uuid;
+  to: Uuid;
+}
+
+export class NoteIsParentRelation implements Relation {
+  id: RelationId;
+  type: "relation";
+  name: "isParent";
+  nameReverse: "isChild";
+  from: NoteId;
+  to: NoteId;
+
+  constructor(relation: Partial<NoteIsParentRelation> = {}) {
+    this.id = relation.id || uuid();
+    this.type = "relation";
+    this.name = "isParent";
+    this.nameReverse = "isChild";
+    this.from = relation.from || "";
+    this.to = relation.to || "";
+  }
+}
+
+type ItemTypes = BlockItem | NoteItem | LabelItem | UpvoteItem | NoteIsParentRelation;
 
 export class Notes {
   private blockToNote: { [key: BlockId]: NoteId };
@@ -116,6 +144,19 @@ export class Notes {
       return [];
     }
     return attributes.map((id) => this.items[id]) as Attribute[];
+  }
+
+  getRelations(itemId: Uuid): Relation[] {
+    const relations: Relation[] = [];
+    Object.values(this.items).forEach((value) => {
+      if (value.type === "relation") {
+        const relation = value as Relation;
+        if (relation.from === itemId || relation.to === itemId) {
+          relations.push(relation);
+        }
+      }
+    });
+    return relations;
   }
 
   /**Get a note by id */
@@ -228,6 +269,20 @@ export class Notes {
       const upvote = item as UpvoteItem;
       const newUpvote = typeof upsert === "function" ? upsert(upvote) : { ...upvote, ...upsert };
       return { [newUpvote.id]: newUpvote };
+    });
+  };
+
+  upsertNoteIsParentRelation = (upsert: Upsert<NoteIsParentRelation>, relationId?: Uuid) => {
+    const id = relationId || uuid();
+    this.updateItems((items) => {
+      const item = items[id] || new NoteIsParentRelation({ id });
+      if (item.type !== "relation" || item.name !== "isParent") {
+        throw new Error("Relation not found");
+      }
+      const relation = item as NoteIsParentRelation;
+      const newRelation =
+        typeof upsert === "function" ? upsert(relation) : { ...relation, ...upsert };
+      return { [newRelation.id]: newRelation };
     });
   };
 }
@@ -366,6 +421,23 @@ export class Note {
         belongsTo: this.noteItem.id,
       };
     }, this.attributes.upvote?.id);
+  };
+
+  addChild = (childId?: Uuid) => {
+    childId = childId || this.notes.createNote();
+    this.notes.upsertNoteIsParentRelation({
+      to: this.noteItem.id,
+      from: childId || this.notes.createNote(),
+    });
+    return childId;
+  };
+
+  getChildren = () => {
+    const relations = this.notes.getRelations(this.noteItem.id);
+    const isParentRels = relations.filter((relation) => {
+      return relation.to === this.noteItem.id && relation.name === "isParent";
+    });
+    return isParentRels.map((isParentRel) => this.notes.getNoteOrThrow(isParentRel.from));
   };
 }
 

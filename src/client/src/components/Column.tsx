@@ -6,11 +6,11 @@ import { Link, useNavigate } from "react-router-dom";
 export function ColumnView({
   notesDb,
   notesList,
-  editable = true,
+  noteView,
 }: {
   notesDb: Notes;
   notesList: NoteItem[];
-  editable?: boolean;
+  noteView: (note: NoteItem) => JSX.Element;
 }) {
   const navigate = useNavigate();
 
@@ -66,15 +66,9 @@ export function ColumnView({
           padding: "10px",
         }}
       >
-        {/* <div className="filler" style={{ height: "100%" }} /> */}
-        {notesList.map((note) => (
-          <NoteView
-            key={note.id}
-            note={new Note(note, notesDb)}
-            open={() => navigate(`/note/${note.id}`)}
-            editable={editable}
-          />
-        ))}
+        {notesList.map((note) => {
+          return noteView(note);
+        })}
         <div className="filler" style={{ minHeight: "50px" }} />
       </div>
     </div>

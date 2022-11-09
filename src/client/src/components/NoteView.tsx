@@ -77,12 +77,12 @@ export function NoteView({
   note,
   showActions = true,
   editable = false,
-  open,
+  onClick,
 }: {
   note: Note;
   showActions?: boolean;
   editable?: boolean;
-  open?: () => void;
+  onClick?: () => void;
 }) {
   const [toSelect, setToSelect] = useState<{ blockId: string; start: number; end: number } | null>(
     null
@@ -136,7 +136,7 @@ export function NoteView({
         padding: "5px 20px 10px 20px",
         margin: "10px",
       }}
-      onClick={open}
+      onClick={onClick}
     >
       {note.title ? <div>{note.title}</div> : null}
       <main

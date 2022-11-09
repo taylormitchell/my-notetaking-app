@@ -10,7 +10,6 @@ export const NotePage = ({ notes }: { notes: Notes }) => {
   const [noteIds, setNoteIds] = useState<NoteId[]>(() => (id ? [id] : []));
 
   const noteRef = useRef<HTMLDivElement>(null);
-  const note = id ? notes.getNote(id) : undefined;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,17 +21,41 @@ export const NotePage = ({ notes }: { notes: Notes }) => {
   }, [noteRef]);
 
   const addChild = () => {
-    if (!note) return;
-    const childId = notes.createNote();
+    if (!noteIds) return;
+    const lastNoteId = noteIds[noteIds.length - 1];
+    const childId = new Note(notes.getNoteOrThrow(lastNoteId), notes).addChild();
     setNoteIds((noteIds) => [...noteIds, childId]);
   };
 
-  const noteList = noteIds.map((id) => notes.getNoteOrThrow(id));
+  // get all children
+  useEffect(() => {
+    setNoteIds((noteIds) => {
+      let newNoteIds = [...noteIds];
+      let lastNoteId = noteIds[noteIds.length - 1];
+      let lastNote = new Note(notes.getNoteOrThrow(lastNoteId), notes);
+      let children = lastNote.getChildren().map((c) => c.id);
+      while (children.length > 0) {
+        newNoteIds = [...newNoteIds, ...children];
+        lastNoteId = children[children.length - 1];
+        lastNote = new Note(notes.getNoteOrThrow(lastNoteId), notes);
+        children = lastNote.getChildren().map((c) => c.id);
+      }
+      return newNoteIds;
+    });
+  }, []);
+
+  let noteList = noteIds.map((id) => notes.getNoteOrThrow(id));
   if (!noteList) return <div>Not found</div>;
   return (
     <div ref={noteRef}>
       <Header back={() => navigate(-1)}>{noteList[0].id.slice(0, 8) + "..."}</Header>
-      <ColumnView notesDb={notes} notesList={noteList} editable={true} />
+      <ColumnView
+        notesDb={notes}
+        notesList={noteList}
+        noteView={(note) => (
+          <NoteView key={note.id} note={new Note(note, notes)} onClick={() => {}} editable={true} />
+        )}
+      />
       <button onClick={addChild}>+</button>
     </div>
   );

@@ -25,6 +25,10 @@ export function BlockView({
     return sel?.anchorOffset || null;
   }
 
+  function isActive(): boolean {
+    return document.activeElement === editableDiv.current;
+  }
+
   function keyDownHandler(e: React.KeyboardEvent) {
     if (e.key === "Tab") {
       e.preventDefault();
@@ -61,7 +65,7 @@ export function BlockView({
 
   // updates the view when the model changes
   useEffect(() => {
-    if (block.text !== innerText) {
+    if (!isActive() && block.text !== innerText) {
       setInnerText(block.text);
       if (editableDiv.current) {
         editableDiv.current.innerHTML = block.text.replace(/\s/g, "\u00a0");

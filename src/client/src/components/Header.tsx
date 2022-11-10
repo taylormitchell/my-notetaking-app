@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export const Header = ({ children, back }: { children: React.ReactNode; back: () => void }) => {
+export const Header = ({ children, back }: { children?: React.ReactNode; back: () => void }) => {
   return (
     <header
       style={{
@@ -22,7 +22,7 @@ export const Header = ({ children, back }: { children: React.ReactNode; back: ()
           ←
         </a>
       </div>
-      <h3>{children}</h3>
+      {children && <div>{children}</div>}
       <div></div>
     </header>
   );

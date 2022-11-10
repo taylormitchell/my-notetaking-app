@@ -4,6 +4,7 @@ import { NoteView } from "../components/NoteView";
 import { getQuery } from "../util";
 import { useNavigate, Link } from "react-router-dom";
 import { Header } from "../components/Header";
+import Entry from "../components/Entry";
 
 export const NoteList = ({ notes }: { notes: Notes }) => {
   let noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
@@ -46,6 +47,7 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
           />
         )}
       />
+      <Entry notesDb={notes} />
     </div>
   );
 };

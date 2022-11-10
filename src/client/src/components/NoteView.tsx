@@ -138,7 +138,6 @@ export function NoteView({
         padding: "5px 20px 10px 20px",
         margin: "10px",
       }}
-      onClick={onClick}
       className={"note"}
       data-note-id={note.id}
     >
@@ -150,6 +149,7 @@ export function NoteView({
           paddingTop: "3px",
           width: "100%",
         }}
+        onClick={onClick}
       >
         {note.blocks.map(({ indent, block }, index) => {
           return (

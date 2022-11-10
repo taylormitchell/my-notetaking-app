@@ -14,19 +14,19 @@ export const Search = ({ notes }: { notes: Notes }) => {
 
   if (query.q) {
     noteList = noteList.filter((note) => {
-      let match = true;
-      for (const line of note.lines) {
-        const block = notes.getBlock(line.id);
-        if (!block) continue;
-        for (const q of query.q) {
-          if (!block.text.toLowerCase().includes(q.toLowerCase())) {
-            match = false;
+      for (const q of query.q) {
+        let match = false;
+        for (const line of note.lines) {
+          const block = notes.getBlock(line.id);
+          if (!block) continue;
+          if (block.text.toLowerCase().includes(q.toLowerCase())) {
+            match = true;
             break;
           }
         }
-        if (!match) break;
+        if (!match) return false;
       }
-      return match;
+      return true;
     });
   }
 

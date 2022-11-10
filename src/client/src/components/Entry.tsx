@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Notes, useNotes, Note } from "../model/useNotes";
 import { getQuery } from "../util";
 import { NoteView } from "./NoteView";
@@ -8,6 +9,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
   const [focus, setFocus] = useState(false);
   const entryNotes = useNotes(false);
   const [note] = entryNotes.getAll();
+  const navigate = useNavigate();
 
   const query = getQuery();
 
@@ -15,7 +17,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
     entryNotes.createNote();
   }, []);
 
-  function submitNote() {
+  function addEntryNote() {
     // Add blocks and note
     note.lines.forEach((line) => {
       notesDb.upsertBlock(entryNotes.getBlock(line.id) || { id: line.id });
@@ -32,11 +34,21 @@ function Entry({ notesDb }: { notesDb: Notes }) {
     });
     entryNotes.clear();
     entryNotes.createNote();
+    return note.id;
+  }
+
+  function clickSendHandler() {
+    addEntryNote();
     if (!entryRef.current) return;
     const elSelected = document.getSelection()?.anchorNode?.parentElement;
     if (elSelected && entryRef.current.contains(elSelected)) {
       setRefocus(true);
     }
+  }
+
+  function clickOpenHandler() {
+    const noteId = addEntryNote();
+    navigate(`/note/${noteId}`);
   }
 
   // Refocus after clearing the entry
@@ -64,14 +76,15 @@ function Entry({ notesDb }: { notesDb: Notes }) {
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.metaKey) {
           e.preventDefault();
-          submitNote();
+          addEntryNote();
         }
       }}
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
     >
+      <button onClick={clickOpenHandler}>open</button>
       <div ref={entryRef} className="Entry__input" style={{ width: "100%" }}>
-        <NoteView note={new Note(note, entryNotes)} showActions={false} />
+        <NoteView note={new Note(note, entryNotes)} showActions={false} editable={true} />
       </div>
       <button
         style={{
@@ -82,7 +95,7 @@ function Entry({ notesDb }: { notesDb: Notes }) {
           backgroundColor: focus ? "blue" : "lightgray",
           border: "none",
         }}
-        onClick={submitNote}
+        onClick={clickSendHandler}
       >
         ↑
       </button>

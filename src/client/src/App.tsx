@@ -24,14 +24,15 @@ function App() {
         height: "100%",
       }}
     >
-      <main style={{ overflow: "hidden" }}>
+      <main style={{ height: "100%", overflow: "hidden" }}>
         <Routes>
           <Route path="/labels" element={<Labels notes={notes} />} />
           <Route path="/" element={<NoteList notes={notes} />} />
           <Route path="/note/:id" element={<NotePage notes={notes} />} />
         </Routes>
       </main>
-      <NewNoteButton onClick={newNote} />
+      <Entry notesDb={notes} />
+      {/* <NewNoteButton onClick={newNote} /> */}
     </div>
   );
 }

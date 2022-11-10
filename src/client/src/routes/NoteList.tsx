@@ -26,7 +26,7 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
   }
 
   return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <Header back={() => navigate("/labels")}>
         <span>
           {labels.map((label) => (
@@ -34,21 +34,18 @@ export const NoteList = ({ notes }: { notes: Notes }) => {
           ))}
         </span>
       </Header>
-      <main style={{ height: "100%", overflow: "hidden" }}>
-        <ColumnView
-          notesDb={notes}
-          notesList={noteList}
-          noteView={(note) => (
-            <NoteView
-              key={note.id}
-              note={new Note(note, notes)}
-              onClick={() => navigate(`/note/${note.id}`)}
-              editable={false}
-            />
-          )}
-        />
-        ;<footer style={{ height: "100px" }}></footer>
-      </main>
+      <ColumnView
+        notesDb={notes}
+        notesList={noteList}
+        noteView={(note) => (
+          <NoteView
+            key={note.id}
+            note={new Note(note, notes)}
+            onClick={() => navigate(`/note/${note.id}`)}
+            editable={false}
+          />
+        )}
+      />
     </div>
   );
 };

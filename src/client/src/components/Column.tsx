@@ -33,43 +33,23 @@ export function ColumnView({
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
-        height: "100%",
-        overflow: "scroll",
+        overflowY: "scroll",
       }}
     >
-      {/* <header
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "lightgrey",
-        }}
-      >
-        <Link to="/labels">←</Link>
-        <h1>
-          <span>
-            {labels.map((label) => (
-              <span key={label.id}>{label.name}</span>
-            ))}
-          </span>
-        </h1>
-      </header> */}
       <div
         ref={notesWrapper}
         className="notes"
         style={{
           display: "flex",
           flexDirection: "column",
-          overflowY: "scroll",
           height: "100%",
           padding: "10px",
+          overflowX: "hidden",
         }}
       >
         {notesList.map((note) => {
           return noteView(note);
         })}
-        <div className="filler" style={{ minHeight: "50px" }} />
       </div>
     </div>
   );

@@ -31,7 +31,9 @@ function App() {
           <Route path="/note/:id" element={<NotePage notes={notes} />} />
         </Routes>
       </main>
-      <Entry notesDb={notes} />
+      <footer>
+        <Entry notesDb={notes} />
+      </footer>
       {/* <NewNoteButton onClick={newNote} /> */}
     </div>
   );

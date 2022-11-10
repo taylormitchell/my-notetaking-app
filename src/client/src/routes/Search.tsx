@@ -4,13 +4,13 @@ import { NoteView } from "../components/NoteView";
 import { getQuery } from "../util";
 import { useNavigate, Link } from "react-router-dom";
 import { Header } from "../components/Header";
+import { useRef } from "react";
 
 export const Search = ({ notes }: { notes: Notes }) => {
   let noteList = notes.getAll().sort((a, b) => a.createdAt - b.createdAt);
   const navigate = useNavigate();
-
   const query = getQuery();
-  console.log(query);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   if (query.q) {
     noteList = noteList.filter((note) => {
@@ -53,14 +53,22 @@ export const Search = ({ notes }: { notes: Notes }) => {
           />
         )}
       />
-      <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+        }}
+      >
         <input
+          ref={inputRef}
           style={{
             width: "100%",
-            height: "40px",
+            height: "50px",
+            fontSize: "1em",
           }}
           type="text"
           placeholder="Search"
+          autoFocus
           onChange={(e) => {
             const query = e.target.value;
             if (query.length > 0) {
@@ -69,7 +77,25 @@ export const Search = ({ notes }: { notes: Notes }) => {
               navigate(`/search`);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (inputRef.current) {
+                inputRef.current.blur();
+              }
+            }
+          }}
         />
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const el = inputRef.current;
+            if (!el) return;
+            el.value = "";
+          }}
+        >
+          x
+        </button>
       </div>
     </div>
   );

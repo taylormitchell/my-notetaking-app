@@ -423,11 +423,21 @@ export class Note {
     }, this.attributes.upvote?.id);
   };
 
-  addChild = (childId?: Uuid) => {
-    childId = childId || this.notes.createNote();
+  addChild = (id?: Uuid) => {
+    const childId = id || this.notes.createNote();
+    // Add child to same labels as parent
+    this.getLabels().forEach((label) => {
+      this.notes.upsertLabel((label) => {
+        return {
+          ...label,
+          noteIds: [...label.noteIds, childId],
+        };
+      }, label.id);
+    });
+    // Add relation
     this.notes.upsertNoteIsParentRelation({
       to: this.noteItem.id,
-      from: childId || this.notes.createNote(),
+      from: childId,
     });
     return childId;
   };
